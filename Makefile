@@ -1,9 +1,8 @@
-
-dependencies: dependencies.json
-	@packin install --folder $@ --meta $<
-	@ln -snf .. $@/prospects
+dependencies:
+	@mkdir -p $@/jkroso
+	@ln -snf ../.. $@/jkroso/prospects
 
 test: dependencies
-	@$</jest/bin/jest test
+	@jest index.jl
 
 .PHONY: test
