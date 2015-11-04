@@ -144,13 +144,13 @@ end
 # to rectify this
 #
 type AsyncIO <: IO
-  stream::Base.AsyncStream
+  stream::IO
   nb::Int
   buff::Vector{UInt8}
   cursor::Int
 end
 
-Base.truncate(io::Base.AsyncStream, n::Integer) = AsyncIO(io, n, UInt8[], 0)
+Base.truncate(io::IO, n::Integer) = AsyncIO(io, n, UInt8[], 0)
 Base.eof(io::AsyncIO) = io.nb == 0
 Base.read(io::AsyncIO, ::Type{UInt8}) = begin
   io.nb -= 1
