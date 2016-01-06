@@ -1,6 +1,6 @@
-##
-# Recursively lift nested arrays/rows within an `array`
-#
+"""
+Recursively lift nested arrays/rows within an `array`
+"""
 flat(a::Union{Vector,Tuple}) = vcat(map(flat, a)...)
 flat(a::Array) = reshape(a, prod(size(a)))
 flat(a) = a
@@ -16,17 +16,17 @@ test("flat") do
   @test flat([]) == []
 end
 
-##
-# Lift nested arrays one level
-#
+"""
+Lift nested arrays one level
+"""
 flatten(a::Vector) = vcat(a...)
 
 # A private unique value
 const undefined = Dict()
 
-##
-# An unsafe get
-#
+"""
+An unsafe get
+"""
 function Base.get(a, key)
   a = get(a, key, undefined)
   a ≡ undefined && error("can't get property: $key")
@@ -39,10 +39,10 @@ test("get(object, key)") do
   @test @catch(get(Dict(), 1)).msg == "can't get property: 1"
 end
 
-##
-# Get a value deeply nested within an associative object
-# If no value is defined it will return default
-#
+"""
+Get a value deeply nested within an associative object
+If no value is defined it will return default
+"""
 function get_in(a, path, default)
   for key in path
     a = get(a, key, default)
@@ -51,10 +51,10 @@ function get_in(a, path, default)
   return a
 end
 
-##
-# Like the 3 argument version except it throws if it
-# the `path` is not defined
-#
+"""
+Like the 3 argument version except it throws if it
+the `path` is not defined
+"""
 get_in(a, path) = foldl(get, a, path)
 
 test("get_in") do
@@ -65,9 +65,9 @@ test("get_in") do
   @test isa(@catch(get_in(Dict(), (1,))), Exception)
 end
 
-##
-# Map `f` over `itr` and flatten the result one level
-#
+"""
+Map `f` over `itr` and flatten the result one level
+"""
 function mapcat(f::Function, itr)
   foldl([], itr) do result, value
     foldl(push!, result, f(value))
@@ -80,10 +80,10 @@ test("mapcat") do
   @test mapcat(ones, [2,3]) == ones(5)
 end
 
-##
-# Compose a series of functions into one which takes an input and runs it
-# sequentially through all the composed functions and returns the result
-#
+"""
+Compose a series of functions into one which takes an input and runs it
+sequentially through all the composed functions and returns the result
+"""
 compose(fns::Function...) = input -> foldl((x, f) -> f(x), input, fns)
 compose(fns...) = compose(flat(fns)...)
 
@@ -94,9 +94,9 @@ test("compose") do
   @test compose(((ones,),), prod, vcat)(3) == [1]
 end
 
-##
-# Copy one stream to another
-#
+"""
+Copy one stream to another
+"""
 function Base.write(a::IO, b::IO)
   total = 0
   while !eof(b)
@@ -116,9 +116,9 @@ test("stream piping") do
   end
 end
 
-##
-# Provide a way of limiting the length of a stream
-#
+"""
+Provide a way of limiting the length of a stream
+"""
 type TruncatedIO <: IO
   io::IO
   nb::Int
@@ -138,11 +138,11 @@ test("TruncatedIO") do
   close(io)
 end
 
-##
-# AsyncStream's in Julia don't do a very good job of being API
-# compatible with other types of IO. AsyncIO is an attempt
-# to rectify this
-#
+"""
+AsyncStream's in Julia don't do a very good job of being API
+compatible with other types of IO. AsyncIO is an attempt
+to rectify this
+"""
 type AsyncIO <: IO
   stream::IO
   nb::Int
