@@ -132,9 +132,9 @@ Base.read(io::TruncatedIO, ::Type{UInt8}) = begin
 end
 
 test("TruncatedIO") do
-  io = open("index.jl")
+  io = open("main.jl")
   head = TruncatedIO(io, 100)
-  readall(head) == readall("index.jl")[1:100]
+  readall(head) == readall("main.jl")[1:100]
   close(io)
 end
 
