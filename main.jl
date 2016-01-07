@@ -137,28 +137,3 @@ test("TruncatedIO") do
   readall(head) == readall("main.jl")[1:100]
   close(io)
 end
-
-"""
-AsyncStream's in Julia don't do a very good job of being API
-compatible with other types of IO. AsyncIO is an attempt
-to rectify this
-"""
-type AsyncIO <: IO
-  stream::IO
-  nb::Int
-  buff::Vector{UInt8}
-  cursor::Int
-end
-
-Base.truncate(io::IO, n::Integer) = AsyncIO(io, n, UInt8[], 0)
-Base.eof(io::AsyncIO) = io.nb == 0
-Base.read(io::AsyncIO, ::Type{UInt8}) = begin
-  io.nb -= 1
-  if io.cursor == length(io.buff)
-    io.buff = readavailable(io.stream).data
-    io.cursor = 0
-  end
-  io.buff[io.cursor += 1]
-end
-
-# TODO: implement a decent `skip(::AsyncIO, ::Int)`
