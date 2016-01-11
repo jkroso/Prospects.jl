@@ -137,3 +137,20 @@ test("TruncatedIO") do
   readall(head) == readall("main.jl")[1:100]
   close(io)
 end
+
+"""
+Create a mutated copy of some Associative like object
+"""
+assoc(dict::Associative, pairs::Pair...) = push!(copy(dict), pairs...)
+assoc(object, pairs::Pair...) = begin
+  typ = typeof(object)
+  dict = Dict(pairs...)
+  vals = map(name -> get(dict, name, object.(name)), fieldnames(typ))
+  typ(vals...)
+end
+
+test("assoc") do
+  @test assoc(Dict(), :a=>1) == Dict(:a=>1)
+  immutable MyType a; b; c; end
+  @test assoc(MyType(1,2,3), :b => 'b', :a => 'a') == MyType('a', 'b', 3)
+end
