@@ -151,8 +151,7 @@ end
 
 test("assoc") do
   @test assoc(Dict(), :a=>1) == Dict(:a=>1)
-  immutable MyType a; b; c; end
-  @test assoc(MyType(1,2,3), :b => 'b', :a => 'a') == MyType('a', 'b', 3)
+  @test assoc(1//2, :num => 2) == 2//2
 end
 
 dissoc(dict::Associative, key) = delete!(copy(dict), key)
