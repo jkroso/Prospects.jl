@@ -154,3 +154,12 @@ test("assoc") do
   immutable MyType a; b; c; end
   @test assoc(MyType(1,2,3), :b => 'b', :a => 'a') == MyType('a', 'b', 3)
 end
+
+dissoc(dict::Associative, key) = delete!(copy(dict), key)
+dissoc(dict::Associative, keys...) = foldl(delete!, copy(dict), keys)
+
+test("dissoc") do
+  @test dissoc(Dict(:a=>1), :a) == Dict()
+  @test dissoc(Dict(:a=>1,:b=>2), :a,:b) == Dict()
+  @test dissoc(Dict(:a=>1,:b=>2,:c=>3), :a,:b) == Dict(:c=>3)
+end
