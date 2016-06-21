@@ -100,7 +100,7 @@ Copy one stream to another
 function Base.write(a::IO, b::IO)
   total = 0
   while !eof(b)
-    total += write(a, read(b, UInt8))
+    total += write(a, readavailable(b))
   end
   total
 end
