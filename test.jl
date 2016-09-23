@@ -35,7 +35,7 @@ testset("compose") do
   @test compose(vcat)(1) == [1]
   @test compose(iseven, vcat)(1) == [false]
   @test compose(ones, prod, vcat)(3) == [1]
-  @test compose(((ones,),), prod, vcat)(3) == [1]
+  @test compose(iseven, Int)(3) == 0
 end
 
 testset("stream piping") do

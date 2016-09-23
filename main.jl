@@ -53,8 +53,7 @@ end
 Compose a series of functions into one which takes an input and runs it
 sequentially through all the composed functions and returns the result
 """
-compose(fns::Function...) = input -> foldl((x, f) -> f(x), input, fns)
-compose(fns...) = compose(flat(fns)...)
+compose(fns::Any...) = input -> foldl((x, f) -> f(x), input, fns)
 
 Base.:(|>)(from::IO,to::IO) = (write(to, from); to)
 
