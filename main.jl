@@ -16,7 +16,7 @@ const undefined = gensym()
 """
 An unsafe get
 """
-function Base.get(a, key)
+Base.get(a, key) = begin
   a = get(a, key, undefined)
   a ≡ undefined && error("can't get property: $key")
   return a
@@ -26,7 +26,7 @@ end
 Get a value deeply nested within an associative object
 If no value is defined it will return default
 """
-function get_in(a, path, default)
+get_in(a, path, default) = begin
   for key in path
     a = get(a, key, default)
     a ≡ default && break
@@ -43,7 +43,7 @@ get_in(a, path) = foldl(get, a, path)
 """
 Map `f` over `itr` and flatten the result one level
 """
-function mapcat(f::Function, itr)
+mapcat(f::Function, itr) = begin
   foldl([], itr) do result, value
     foldl(push!, result, f(value))
   end
@@ -99,4 +99,47 @@ group(f, itr) = begin
   yes,no
 end
 
-export group, assoc, dissoc, compose, mapcat, flat, flatten, get_in, TruncatedIO
+"""
+Define partial application methods for `fn` for when its called with too few arguments
+"""
+macro curry(fn::Expr)
+  params = fn.args[1].args
+  name = esc(params[1])
+  # escape Type annotations
+  params = map(params[2:end]) do p
+    !isa(p, Expr) && return p
+    p.head != :(::) && return p
+    Expr(p.head, p.args[1], esc(p.args[2]))
+  end
+  out = :(begin $(esc(fn)) end)
+  for (i, param) in enumerate(params)
+    i == endof(params) && break
+    isoptional(params[i+1]) && break
+    args = params[1:i]
+    push!(out.args, :($name($(args...)) = partial($name, $(args...))))
+  end
+  out
+end
+
+isoptional(param) = isa(param, Expr) && param.head == :kw
+
+"""
+Create a new `Function` with some parameters already defined.
+i.e a less abstract `Function`
+
+```julia
+isone = partial(==, 1)
+map(isone, [1,2,3]) # => [true, false, false]
+```
+"""
+partial(fn::Function, a...) = (b...) -> fn(a..., b...)
+
+##
+# Define some basic transducers
+#
+@curry Base.map(f::Function, combine::Function, result, value) = combine(result, f(value))
+@curry Base.filter(f::Function, combine::Function, result, value) =
+  f(value) ? combine(result, value) : result
+
+export group, assoc, dissoc, compose, mapcat, flat,
+       flatten, get_in, TruncatedIO, partial, @curry

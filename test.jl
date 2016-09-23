@@ -40,7 +40,7 @@ end
 
 testset("stream piping") do
   open(tempname(), "w+") do file
-    @test @show(write(file, IOBuffer("abc"))) == 3
+    @test write(file, IOBuffer("abc")) == 3
     @test IOBuffer("def") |> file === file
     seekstart(file)
     @test readstring(file) == "abcdef"
@@ -67,4 +67,36 @@ end
 
 testset("group") do
   @test group(iseven, [1,2,3,4]) == ([2,4],[1,3])
+end
+
+testset("curry") do
+  testset("basic") do
+    @curry add(a,b,c) = a + b + c
+    @test add(1,2,3) == 6
+    @test add(1,2)(3) == 6
+    @test add(1)(2,3) == 6
+    @test add(1)(2)(3) == 6
+  end
+
+  testset("default parameters") do
+    @curry add(a,b,c=2,d=1) = a + b + c + d
+    @test add(1)(2) == 6
+    @test add(1,2) == 6
+    @test add(1)(2,2) == 6
+    @test add(1,2,2) == 6
+  end
+
+  testset("type annotations") do
+    @curry add(a::Int,b::Int,c::Int) = a + b + c
+    @test add(1,2,3) == 6
+    @test add(1,2)(3) == 6
+    @test add(1)(2,3) == 6
+    @test add(1)(2)(3) == 6
+  end
+end
+
+testset("transducers") do
+  @test map(iseven, push!, [], 1) == [false]
+  @test filter(iseven, push!, [], 1) == []
+  @test filter(iseven, push!, [], 2) == [2]
 end
