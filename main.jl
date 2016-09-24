@@ -73,8 +73,6 @@ mapcat(f::Function, itr) = begin
   end
 end
 
-@curry mapcat(f::Function, combine::Function, result, value) = reduce(combine, result, f(value))
-
 """
 Compose a series of functions into one which takes an input and runs it
 sequentially through all the composed functions and returns the result
@@ -141,6 +139,7 @@ partial(fn::Function, a...) = (b...) -> fn(a..., b...)
 @curry Base.map(f::Function, combine::Function, result, value) = combine(result, f(value))
 @curry Base.filter(f::Function, combine::Function, result, value) =
   f(value) ? combine(result, value) : result
+@curry mapcat(f::Function, combine::Function, result, value) = reduce(combine, result, f(value))
 
 export group, assoc, dissoc, compose, mapcat, flat,
        flatten, get_in, TruncatedIO, partial, @curry
