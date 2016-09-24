@@ -15,12 +15,34 @@ macro curry(fn::Expr)
     i == endof(params) && break
     isoptional(params[i+1]) && break
     args = params[1:i]
-    push!(out.args, :($name($(args...)) = partial($name, $(args...))))
+    types = map(arg_type, args)
+    push!(out.args, quote
+      if !method_defined($name, [$(types...)])
+        $name($(args...)) = partial($name, $(args...))
+      end
+    end)
   end
   out
 end
 
-isoptional(param) = isa(param, Expr) && param.head == :kw
+arg_type(e::Expr) = (@assert(e.head ≡ :(::)); e.args[2])
+arg_type(s::Symbol) = :Any
+isoptional(param) = isa(param, Expr) && param.head ≡ :kw
+
+"""
+Check if any methods are defined on `f` that would be ambiguous with `types`.
+`method_exists` is similar but tests for applicability which is a larger set
+of methods
+
+```julia
+method_defined(map, [Function, String]) # => false
+method_exists(map, [Function, String]) # => true
+```
+"""
+method_defined(f::Function, types::Any) = begin
+  sig = Tuple{typeof(f), types...}
+  any(m-> m.sig <: sig, methods(f, types))
+end
 
 """
 Recursively lift nested arrays/rows within an `array`
@@ -150,4 +172,4 @@ Run a value through a series of transducers
 
 export group, assoc, dissoc, compose, mapcat, flat,
        flatten, get_in, TruncatedIO, partial, @curry,
-       transduce
+       transduce, method_defined
