@@ -99,4 +99,5 @@ testset("transducers") do
   @test map(iseven, push!, [], 1) == [false]
   @test filter(iseven, push!, [], 1) == []
   @test filter(iseven, push!, [], 2) == [2]
+  @test mapcat(vcat, push!, [], 1) == [1]
 end

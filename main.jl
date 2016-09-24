@@ -1,4 +1,28 @@
 """
+Define partial application methods for `fn` for when its called with too few arguments
+"""
+macro curry(fn::Expr)
+  params = fn.args[1].args
+  name = esc(params[1])
+  # escape Type annotations
+  params = map(params[2:end]) do p
+    !isa(p, Expr) && return p
+    p.head != :(::) && return p
+    Expr(p.head, p.args[1], esc(p.args[2]))
+  end
+  out = :(begin $(esc(fn)) end)
+  for (i, param) in enumerate(params)
+    i == endof(params) && break
+    isoptional(params[i+1]) && break
+    args = params[1:i]
+    push!(out.args, :($name($(args...)) = partial($name, $(args...))))
+  end
+  out
+end
+
+isoptional(param) = isa(param, Expr) && param.head == :kw
+
+"""
 Recursively lift nested arrays/rows within an `array`
 """
 flat(a::Union{Vector,Tuple}) = vcat(map(flat, a)...)
@@ -49,6 +73,8 @@ mapcat(f::Function, itr) = begin
   end
 end
 
+@curry mapcat(f::Function, combine::Function, result, value) = reduce(combine, result, f(value))
+
 """
 Compose a series of functions into one which takes an input and runs it
 sequentially through all the composed functions and returns the result
@@ -97,30 +123,6 @@ group(f, itr) = begin
   end
   yes,no
 end
-
-"""
-Define partial application methods for `fn` for when its called with too few arguments
-"""
-macro curry(fn::Expr)
-  params = fn.args[1].args
-  name = esc(params[1])
-  # escape Type annotations
-  params = map(params[2:end]) do p
-    !isa(p, Expr) && return p
-    p.head != :(::) && return p
-    Expr(p.head, p.args[1], esc(p.args[2]))
-  end
-  out = :(begin $(esc(fn)) end)
-  for (i, param) in enumerate(params)
-    i == endof(params) && break
-    isoptional(params[i+1]) && break
-    args = params[1:i]
-    push!(out.args, :($name($(args...)) = partial($name, $(args...))))
-  end
-  out
-end
-
-isoptional(param) = isa(param, Expr) && param.head == :kw
 
 """
 Create a new `Function` with some parameters already defined.
