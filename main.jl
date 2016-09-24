@@ -10,7 +10,7 @@ macro curry(fn::Expr)
     p.head != :(::) && return p
     Expr(p.head, p.args[1], esc(p.args[2]))
   end
-  out = :(begin $(esc(fn)) end)
+  out = :(begin Base.@__doc__($(esc(fn))) end)
   for (i, param) in enumerate(params)
     i == endof(params) && break
     isoptional(params[i+1]) && break
