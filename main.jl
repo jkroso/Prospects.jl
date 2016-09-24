@@ -133,6 +133,13 @@ map(isone, [1,2,3]) # => [true, false, false]
 """
 partial(fn::Function, a...) = (b...) -> fn(a..., b...)
 
+"""
+Run a value through a series of transducers
+"""
+@curry transduce(fns::Vector, combine::Function) = foldr(partial, combine, fns)
+@curry transduce(fns::Vector, combine::Function, accum, value) =
+  foldr(partial, combine, fns)(accum, value)
+
 ##
 # Define some basic transducers
 #

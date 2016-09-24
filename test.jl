@@ -100,4 +100,6 @@ testset("transducers") do
   @test filter(iseven, push!, [], 1) == []
   @test filter(iseven, push!, [], 2) == [2]
   @test mapcat(vcat, push!, [], 1) == [1]
+  @test transduce([map(iseven), filter(identity)], push!, [], 2) == [true]
+  @test transduce([map(iseven), filter(identity)], push!, [], 1) == []
 end
