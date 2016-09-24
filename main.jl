@@ -149,4 +149,5 @@ Run a value through a series of transducers
 @curry mapcat(f::Function, combine::Function, result, value) = reduce(combine, result, f(value))
 
 export group, assoc, dissoc, compose, mapcat, flat,
-       flatten, get_in, TruncatedIO, partial, @curry
+       flatten, get_in, TruncatedIO, partial, @curry,
+       transduce
