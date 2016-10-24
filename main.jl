@@ -170,6 +170,12 @@ Run a value through a series of transducers
   f(value) ? combine(result, value) : result
 @curry mapcat(f::Function, combine::Function, result, value) = reduce(combine, result, f(value))
 
+immutable Field name::Symbol end
+(f::Field)(object::Any) = getfield(object, f.name)
+macro field_str(s) Field(Symbol(s)) end
+Base.get(o::Any, f::Field, default::Any) = isdefined(o, f.name) ? getfield(o, f.name) : default
+Base.get(o::Any, f::Field) = getfield(o, f.name)
+
 export group, assoc, dissoc, compose, mapcat, flat,
        flatten, get_in, TruncatedIO, partial, @curry,
-       transduce, method_defined
+       transduce, method_defined, Field, @field_str
