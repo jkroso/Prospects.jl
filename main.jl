@@ -176,6 +176,21 @@ macro field_str(s) Field{Symbol(s)}() end
 Base.get{name}(o::Any, f::Field{name}, default::Any) = isdefined(o, name) ? getfield(o, name) : default
 Base.get{name}(o::Any, f::Field{name}) = getfield(o, name)
 
+"""
+Unpack a boxed value. If necessary it can wait for the value to become available
+"""
+need(x::Any) = x
+need(n::Nullable) = get(n)
+need(f::Future) = begin
+  result = fetch(f)
+  if isa(result, RemoteException)
+    rethrow(result.captured.ex)
+  else
+    result
+  end
+end
+
 export group, assoc, dissoc, compose, mapcat, flat,
        flatten, get_in, TruncatedIO, partial, @curry,
-       transduce, method_defined, Field, @field_str
+       transduce, method_defined, Field, @field_str,
+       need

@@ -107,3 +107,10 @@ testset("transducers") do
   @test transduce([map(iseven), filter(identity)], push!, [], 2) == [true]
   @test transduce([map(iseven), filter(identity)], push!, [], 1) == []
 end
+
+testset("need") do
+  @test need(@spawn 1) ≡ 1
+  @test isa(@catch(need(@spawn error("boom"))), ErrorException)
+  @test need(Nullable(1)) ≡ 1
+  @test isa(@catch(need(Nullable())), NullException)
+end
