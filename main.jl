@@ -212,7 +212,9 @@ end
 Instead of throwing an Error if no value is a available it will just return a
 `default` value
 """
-need(x::Any, default::Any) = try need(x) catch e default end
+need(x::Any, default::Any) = try need(x) catch; default end
+need(n::Nullable, default::Any) = get(n, default)
+need(f::Future, default::Any) = (r = fetch(f); isa(r, RemoteException) ? default : r)
 
 export group, assoc, dissoc, compose, mapcat, flat,
        flatten, get_in, TruncatedIO, partial, @curry,
