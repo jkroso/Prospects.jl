@@ -137,16 +137,27 @@ Base.getindex(io::IO, r::UnitRange) =
   TruncatedIO(r.start > 1 ? SkippedIO(io, r.start, false) : io, r.stop - r.start + 1)
 
 """
-Create a mutated copy of some Associative like object
+Create a copy of a collection with some elements added
 """
-assoc(dict::Associative, pairs::Pair...) = push!(copy(dict), pairs...)
-assoc(object, pairs::Pair...) = begin
+push(a::AbstractArray, vals...) = append!(copy(a), vals)
+push(dict::Associative, pairs::Pair...) = push!(copy(dict), pairs...)
+push(object, pairs::Pair...) = begin
   typ = typeof(object)
   dict = Dict(pairs...)
   vals = map(name -> get(dict, name, getfield(object, name)), fieldnames(typ))
   typ(vals...)
 end
 
+"""
+Create a copy of an `Associative` like structure with one key=>value pair altered
+"""
+assoc(dict::Associative, key, value) = push!(copy(dict), key=>value)
+assoc{T}(o::T, key, value) =
+  T(map(f -> f ≡ key ? value : getfield(o, f), fieldnames(T))...)
+
+"""
+Create a copy of an `Associative` with `keys` removed
+"""
 dissoc(dict::Associative, key) = delete!(copy(dict), key)
 dissoc(dict::Associative, keys...) = foldl(delete!, copy(dict), keys)
 
@@ -219,4 +230,4 @@ need(f::Future, default::Any) = (r = fetch(f); isa(r, RemoteException) ? default
 export group, assoc, dissoc, compose, mapcat, flat,
        flatten, get_in, TruncatedIO, partial, @curry,
        transduce, method_defined, Field, @field_str,
-       need
+       need, push

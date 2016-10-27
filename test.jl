@@ -60,9 +60,15 @@ testset("getindex(::IO, ::UnitRange)") do
   end
 end
 
+testset("push") do
+  @test push([], 1, 2) == [1,2]
+  @test push(Dict(), :a=>1) == Dict(:a=>1)
+  @test push(1//2, :num=>2) == 2//2
+end
+
 testset("assoc") do
-  @test assoc(Dict(), :a=>1) == Dict(:a=>1)
-  @test assoc(1//2, :num => 2) == 2//2
+  @test assoc(Dict(), :a, 1) == Dict(:a=>1)
+  @test assoc(1//2, :num, 2) == 2//2
 end
 
 testset("dissoc") do
