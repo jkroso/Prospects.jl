@@ -111,12 +111,30 @@ type TruncatedIO <: IO
   nb::Int
 end
 
+type SkippedIO <: IO
+  io::IO
+  nb::Int
+  skipped::Bool
+end
+
 Base.truncate(io::IO, n::Integer) = TruncatedIO(io, n)
 Base.eof(io::TruncatedIO) = io.nb == 0
 Base.read(io::TruncatedIO, ::Type{UInt8}) = begin
   io.nb -= 1
   read(io.io, UInt8)
 end
+
+Base.read(io::SkippedIO, ::Type{UInt8}) = begin
+  if !io.skipped
+    read(io.io, io.nb - 1)
+    io.skipped = true
+  end
+  read(io.io, UInt8)
+end
+
+Base.getindex(io::IO, i::Integer) = (read(io, i - 1); read(io, UInt8))
+Base.getindex(io::IO, r::UnitRange) =
+  TruncatedIO(r.start > 1 ? SkippedIO(io, r.start, false) : io, r.stop - r.start + 1)
 
 """
 Create a mutated copy of some Associative like object

@@ -47,11 +47,17 @@ testset("stream piping") do
   end
 end
 
-testset("TruncatedIO") do
-  io = open("main.jl")
-  head = TruncatedIO(io, 100)
-  readstring(head) == readstring("main.jl")[1:100]
-  close(io)
+testset("getindex(::IO, ::Integer)") do
+  @test IOBuffer("abc")[2]|>Char == 'b'
+end
+
+testset("getindex(::IO, ::UnitRange)") do
+  open("main.jl") do io
+    @test readstring(io[1:100]) == readstring("main.jl")[1:100]
+  end
+  open("main.jl") do io
+    @test readstring(io[5:100]) == readstring("main.jl")[5:100]
+  end
 end
 
 testset("assoc") do
