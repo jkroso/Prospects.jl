@@ -208,6 +208,12 @@ need(f::Future) = begin
   end
 end
 
+"""
+Instead of throwing an Error if no value is a available it will just return a
+`default` value
+"""
+need(x::Any, default::Any) = try need(x) catch e default end
+
 export group, assoc, dissoc, compose, mapcat, flat,
        flatten, get_in, TruncatedIO, partial, @curry,
        transduce, method_defined, Field, @field_str,

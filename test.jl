@@ -119,4 +119,5 @@ testset("need") do
   @test isa(@catch(need(@spawn error("boom"))), ErrorException)
   @test need(Nullable(1)) ≡ 1
   @test isa(@catch(need(Nullable())), NullException)
+  @test need(Nullable(), 1) ≡ 1
 end
