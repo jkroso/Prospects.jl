@@ -152,6 +152,7 @@ end
 Create a copy of an `Associative` like structure with one key=>value pair altered
 """
 assoc(dict::Associative, key, value) = push!(copy(dict), key=>value)
+assoc(arr::AbstractArray, i, value) = (arr = copy(arr); arr[i] = value; arr)
 assoc{T}(o::T, key, value) =
   T(map(f -> f ≡ key ? value : getfield(o, f), fieldnames(T))...)
 

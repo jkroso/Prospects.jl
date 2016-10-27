@@ -69,6 +69,7 @@ end
 testset("assoc") do
   @test assoc(Dict(), :a, 1) == Dict(:a=>1)
   @test assoc(1//2, :num, 2) == 2//2
+  @test assoc([1,2,3], 1, 2) == [2,2,3]
 end
 
 testset("dissoc") do
