@@ -56,15 +56,12 @@ Lift nested arrays one level
 """
 flatten(a::Vector) = vcat(a...)
 
-# A private unique value
-const undefined = gensym()
-
 """
 An unsafe get
 """
 Base.get(a, key) = begin
-  a = get(a, key, undefined)
-  a ≡ undefined && error("can't get property: $key")
+  a = get(a, key, Base.secret_table_token)
+  a ≡ Base.secret_table_token && error("can't get property: $key")
   return a
 end
 
