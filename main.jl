@@ -71,8 +71,8 @@ If no value is defined it will return default
 """
 get_in(a, path, default) = begin
   for key in path
-    a = get(a, key, default)
-    a ≡ default && break
+    a = get(a, key, Base.secret_table_token)
+    a ≡ Base.secret_table_token && return default
   end
   return a
 end
