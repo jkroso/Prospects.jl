@@ -141,19 +141,17 @@ Base.getindex(io::IO, r::UnitRange) =
 """
 Create a copy of a collection with some elements added
 """
-push(a::AbstractArray, vals...) = append!(copy(a), vals)
-push(dict::Associative, pairs::Pair...) = push!(copy(dict), pairs...)
-push(object, pairs::Pair...) = begin
-  typ = typeof(object)
-  dict = Dict(pairs...)
-  vals = map(name -> get(dict, name, getfield(object, name)), fieldnames(typ))
-  typ(vals...)
-end
+push(collection, items...) = reduce(push, collection, items)
+push(a::AbstractArray, item) = push!(copy(a), item)
+push{K,V}(d::Base.ImmutableDict{K,V}, p::Pair) = Base.ImmutableDict{K,V}(d, p[1], p[2])
+push(dict::Associative, item::Pair) = push!(copy(dict), item)
+push(object, pair::Pair) = assoc(object, pair[1], pair[2])
 
 """
 Create a copy of an `Associative` like structure with one key=>value pair altered
 """
 assoc(dict::Associative, key, value) = push!(copy(dict), key=>value)
+assoc{K,V}(d::Base.ImmutableDict{K,V}, key::K, value::V) = Base.ImmutableDict{K,V}(d, key, value)
 assoc(arr::AbstractArray, i, value) = (arr = copy(arr); arr[i] = value; arr)
 assoc{T}(o::T, key, value) =
   T(map(f -> f ≡ key ? value : getfield(o, f), fieldnames(T))...)

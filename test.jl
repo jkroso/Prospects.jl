@@ -64,12 +64,14 @@ testset("push") do
   @test push([], 1, 2) == [1,2]
   @test push(Dict(), :a=>1) == Dict(:a=>1)
   @test push(1//2, :num=>2) == 2//2
+  @test push(Base.ImmutableDict{Symbol,Int64}(), :a=>1) == Base.ImmutableDict(:a=>1)
 end
 
 testset("assoc") do
   @test assoc(Dict(), :a, 1) == Dict(:a=>1)
   @test assoc(1//2, :num, 2) == 2//2
   @test assoc([1,2,3], 1, 2) == [2,2,3]
+  @test assoc(Base.ImmutableDict{Symbol,Int64}(), :a, 1) == Base.ImmutableDict(:a=>1)
 end
 
 testset("dissoc") do
