@@ -61,9 +61,14 @@ An unsafe get
 """
 Base.get(a, key) = begin
   a = get(a, key, Base.secret_table_token)
-  a ≡ Base.secret_table_token && error("can't get property: $key")
+  a ≡ Base.secret_table_token && throw(KeyError(key))
   return a
 end
+
+"""
+Default to `getfield`
+"""
+Base.get(object, key, default) = isdefined(object, key) ? getfield(object, key) : default
 
 """
 Get a value deeply nested within an associative object
