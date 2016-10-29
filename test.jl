@@ -14,7 +14,7 @@ end
 testset("get(object, key)") do
   @test get(Dict(1=>2), 1) == 2
   @test get([2], 1) == 2
-  @test @catch(get(Dict(), 1)).msg == "can't get property: 1"
+  @test isa(@catch(get(Dict(), 1)), KeyError)
 end
 
 testset("get_in") do
