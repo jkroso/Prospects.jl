@@ -74,10 +74,23 @@ testset("assoc") do
   @test assoc(Base.ImmutableDict{Symbol,Int64}(), :a, 1) == Base.ImmutableDict(:a=>1)
 end
 
+testset("assoc_in") do
+  @test assoc_in(Dict(:a=>[:a,:b]),[:a,1]=>:b) == Dict(:a=>[:b,:b])
+  @test assoc_in(Dict(:a=>[:a,:b]),[]=>:b) == :b
+  @test assoc_in(Dict(:a=>[:a],:b=>2),[:a,1]=>:b, [:b]=>1) == Dict(:a=>[:b],:b=>1)
+end
+
 testset("dissoc") do
   @test dissoc(Dict(:a=>1), :a) == Dict()
   @test dissoc(Dict(:a=>1,:b=>2), :a,:b) == Dict()
   @test dissoc(Dict(:a=>1,:b=>2,:c=>3), :a,:b) == Dict(:c=>3)
+end
+
+testset("dissoc_in") do
+  @test dissoc_in(Dict(:a=>1), []) == Dict(:a=>1)
+  @test dissoc_in(Dict(:a=>1), [:a]) == Dict()
+  @test dissoc_in(Dict(:a=>Dict(:b=>1)), [:a,:b]) == Dict(:a=>Dict())
+  @test dissoc_in(Dict(:a=>1,:b=>2), [:a], [:b]) == Dict()
 end
 
 testset("group") do

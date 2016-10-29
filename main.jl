@@ -157,10 +157,33 @@ assoc{T}(o::T, key, value) =
   T(map(f -> f ≡ key ? value : getfield(o, f), fieldnames(T))...)
 
 """
+Add an association deep in the structure
+"""
+assoc_in(a::Any, kvs::Pair...) = reduce(assoc_in, a, kvs)
+assoc_in(a::Any, kv::Pair) = begin
+  (keys,value) = kv
+  isempty(keys) && return value
+  key = first(keys)
+  assoc(a, key, assoc_in(get(a, key), drop(keys, 1)=>value))
+end
+
+"""
 Create a copy of an `Associative` with `keys` removed
 """
 dissoc(dict::Associative, key) = delete!(copy(dict), key)
 dissoc(dict::Associative, keys...) = foldl(delete!, copy(dict), keys)
+
+"""
+Remove an association deep in the structure
+"""
+dissoc_in(a, paths...) = reduce(dissoc_in, a, paths)
+dissoc_in(a, path) = begin
+  isempty(path) && return a
+  key = first(path)
+  rest = drop(path, 1)
+  isempty(rest) && return dissoc(a, key)
+  assoc(a, key, dissoc_in(get(a, key), rest))
+end
 
 """
 Split a sequence of values into two vectors according to the return value of `f`
@@ -231,4 +254,4 @@ need(f::Future, default::Any) = (r = fetch(f); isa(r, RemoteException) ? default
 export group, assoc, dissoc, compose, mapcat, flat,
        flatten, get_in, TruncatedIO, partial, @curry,
        transduce, method_defined, Field, @field_str,
-       need, push
+       need, push, assoc_in, dissoc_in
