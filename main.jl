@@ -151,7 +151,8 @@ push(object, pair::Pair) = assoc(object, pair[1], pair[2])
 Create a copy of a sequence with some elements added at the start
 """
 unshift(collection, items...) = reduce(unshift, collection, items)
-unshift(a::AbstractArray, item) = unshift!(copy(a), item)
+unshift(a::AbstractArray, item) = vcat(item, a)
+unshift(a::AbstractArray, items...) = vcat(reverse(items)..., a)
 
 """
 Create a copy of an `Associative` like structure with one key=>value pair altered
@@ -261,4 +262,4 @@ need(f::Future, default::Any) = (r = fetch(f); isa(r, RemoteException) ? default
 export group, assoc, dissoc, compose, mapcat, flat,
        flatten, get_in, TruncatedIO, partial, @curry,
        transduce, method_defined, Field, @field_str,
-       need, push, assoc_in, dissoc_in
+       need, push, assoc_in, dissoc_in, unshift

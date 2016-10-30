@@ -70,6 +70,7 @@ end
 testset("unshift") do
   @test unshift([1,2,3], 0) == [0,1,2,3]
   @test unshift([1,2,3], 0, -1) == [-1,0,1,2,3]
+  @test unshift([1,2,3], 0, :a) == [:a,0,1,2,3]
 end
 
 testset("assoc") do
