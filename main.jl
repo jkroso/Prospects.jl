@@ -148,6 +148,12 @@ push(dict::Associative, item::Pair) = push!(copy(dict), item)
 push(object, pair::Pair) = assoc(object, pair[1], pair[2])
 
 """
+Create a copy of a sequence with some elements added at the start
+"""
+unshift(collection, items...) = reduce(unshift, collection, items)
+unshift(a::AbstractArray, item) = unshift!(copy(a), item)
+
+"""
 Create a copy of an `Associative` like structure with one key=>value pair altered
 """
 assoc{K,V}(dict::Associative{K,V}, key::K, value::V) = push!(copy(dict), key=>value)
