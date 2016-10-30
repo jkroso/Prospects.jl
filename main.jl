@@ -150,7 +150,8 @@ push(object, pair::Pair) = assoc(object, pair[1], pair[2])
 """
 Create a copy of an `Associative` like structure with one key=>value pair altered
 """
-assoc(dict::Associative, key, value) = push!(copy(dict), key=>value)
+assoc{K,V}(dict::Associative{K,V}, key::K, value::V) = push!(copy(dict), key=>value)
+assoc{K,V,X,Y}(dict::Associative{K,V}, key::X, value::Y) = Dict(dict..., key=>value)
 assoc{K,V}(d::Base.ImmutableDict{K,V}, key::K, value::V) = Base.ImmutableDict{K,V}(d, key, value)
 assoc(arr::AbstractArray, i, value) = (arr = copy(arr); arr[i] = value; arr)
 assoc{T}(o::T, key, value) =

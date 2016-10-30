@@ -72,6 +72,8 @@ testset("assoc") do
   @test assoc(1//2, :num, 2) == 2//2
   @test assoc([1,2,3], 1, 2) == [2,2,3]
   @test assoc(Base.ImmutableDict{Symbol,Int64}(), :a, 1) == Base.ImmutableDict(:a=>1)
+  @test assoc(Dict(:a=>[]), :b, Dict()) == Dict(:a=>[],:b=>Dict())
+  @test assoc(Base.ImmutableDict(:a=>1), :b, :c) == Dict(:a=>1,:b=>:c)
 end
 
 testset("assoc_in") do
