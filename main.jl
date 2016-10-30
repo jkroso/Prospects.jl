@@ -259,6 +259,11 @@ need(x::Any, default::Any) = try need(x) catch; default end
 need(n::Nullable, default::Any) = get(n, default)
 need(f::Future, default::Any) = (r = fetch(f); isa(r, RemoteException) ? default : r)
 
+# this was left out of base for some reason
+Base.filter(f::Function, d::Base.ImmutableDict) =
+  reduce((d, pair) -> f(pair...) ? Base.ImmutableDict(d, pair) : d, typeof(d)(), d)
+dissoc(d::Base.ImmutableDict, key) = filter((k,v)-> k != key, d)
+
 export group, assoc, dissoc, compose, mapcat, flat,
        flatten, get_in, TruncatedIO, partial, @curry,
        transduce, method_defined, Field, @field_str,
