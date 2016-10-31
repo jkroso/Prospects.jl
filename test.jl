@@ -92,6 +92,7 @@ testset("dissoc") do
   @test dissoc(Dict(:a=>1), :a) == Dict()
   @test dissoc(Dict(:a=>1,:b=>2), :a,:b) == Dict()
   @test dissoc(Dict(:a=>1,:b=>2,:c=>3), :a,:b) == Dict(:c=>3)
+  @test dissoc([1,2,3], 2) == [1,3]
 end
 
 testset("dissoc_in") do

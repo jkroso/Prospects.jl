@@ -176,10 +176,12 @@ assoc_in(a::Any, kv::Pair) = begin
 end
 
 """
-Create a copy of an `Associative` with `keys` removed
+Create a copy of a collection with `keys` removed
 """
 dissoc(dict::Associative, key) = delete!(copy(dict), key)
 dissoc(dict::Associative, keys...) = foldl(delete!, copy(dict), keys)
+dissoc(d::Base.ImmutableDict, key) = filter((k,v)-> k != key, d)
+dissoc(a::AbstractArray, i) = deleteat!(copy(a), i)
 
 """
 Remove an association deep in the structure
@@ -262,7 +264,6 @@ need(f::Future, default::Any) = (r = fetch(f); isa(r, RemoteException) ? default
 # this was left out of base for some reason
 Base.filter(f::Function, d::Base.ImmutableDict) =
   reduce((d, pair) -> f(pair...) ? Base.ImmutableDict(d, pair) : d, typeof(d)(), d)
-dissoc(d::Base.ImmutableDict, key) = filter((k,v)-> k != key, d)
 
 export group, assoc, dissoc, compose, mapcat, flat,
        flatten, get_in, TruncatedIO, partial, @curry,
