@@ -1,4 +1,5 @@
 @require "." exports...
+@require "./deftype" defhash
 
 testset("flat") do
   @test flat(map(ones, [1,2,3])) == ones(6)
@@ -153,12 +154,15 @@ testset("need") do
   @test need(Nullable(), 1) ≡ 1
 end
 
-testset("@type") do
-  @type A(a::Int,b=Dict(),c::Any=Vector{Int}())
-  @assert A(1).a == 1
-  @assert A(1).b == Dict()
-  @assert A(1).c == Int[]
-  @assert fieldtype(A, :a) == Int
-  @assert fieldtype(A, :b) == Dict
-  @assert fieldtype(A, :c) == Any
-end
+# @type
+@type A(a::Int,b=Dict(),c::Any=Vector{Int}())
+@assert A(1).a == 1
+@assert A(1).b == Dict()
+@assert A(1).c == Int[]
+@assert fieldtype(A, :a) == Int
+@assert fieldtype(A, :b) == Dict
+@assert fieldtype(A, :c) == Any
+
+type B; a; b; c; end
+defhash(B)
+@test hash(B(1,2,3)) == hash(B(1,2,3))
