@@ -1,3 +1,5 @@
+@require "./deftype" exports...
+
 """
 Define partial application methods for `fn` for when its called with too few arguments
 """
@@ -268,4 +270,5 @@ Base.filter(f::Function, d::Base.ImmutableDict) =
 export group, assoc, dissoc, compose, mapcat, flat,
        flatten, get_in, TruncatedIO, partial, @curry,
        transduce, method_defined, Field, @field_str,
-       need, push, assoc_in, dissoc_in, unshift
+       need, push, assoc_in, dissoc_in, unshift, @type,
+       @immutable

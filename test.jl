@@ -152,3 +152,13 @@ testset("need") do
   @test isa(@catch(need(Nullable())), NullException)
   @test need(Nullable(), 1) ≡ 1
 end
+
+testset("@type") do
+  @type A(a::Int,b=Dict(),c::Any=Vector{Int}())
+  @assert A(1).a == 1
+  @assert A(1).b == Dict()
+  @assert A(1).c == Int[]
+  @assert fieldtype(A, :a) == Int
+  @assert fieldtype(A, :b) == Dict
+  @assert fieldtype(A, :c) == Any
+end
