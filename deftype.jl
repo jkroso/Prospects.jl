@@ -4,10 +4,8 @@
 deftype(e::Expr, mutable) = begin
   call,super = e.head ≡ :<: ? e.args : [e, Any]
   name, args = (call.args[1], call.args[2:end])
-  def = Expr(:type, mutable,
-             :($(esc(name)) <: $(esc(super))),
-             quote $(map(tofield, args)...) end)
-  out = quote Base.@__doc__($def) end
+  def = Expr(:type, mutable, :($name <: $super), quote $(map(tofield, args)...) end)
+  out = quote Base.@__doc__($(esc(def))) end
   for (i, arg) in enumerate(args)
     isoptional(arg) || continue
     params = map(tofield, take(args, i - 1))
