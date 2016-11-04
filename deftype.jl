@@ -14,6 +14,7 @@ deftype(e::Expr, mutable) = begin
     values = map(tovalue, take(args, i))
     push!(out.args, esc(:($name($(params...)) = $name($(values...)))))
   end
+  mutable || push!(out.args, :(defhash($(esc(name))); defequals($(esc(name)))))
   out
 end
 
@@ -44,7 +45,7 @@ tovalue(s::Symbol) = s
 tovalue(e::Expr) = e.head ≡ :kw ? e.args[2] : e.args[1]
 
 """
-Define a basic stable `Base.hash` which just combines the hash of an 
+Define a basic stable `Base.hash` which just combines the hash of an
 instance's `DataType` with the hash of its values
 """
 defhash(T::DataType) =

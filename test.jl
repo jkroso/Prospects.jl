@@ -154,17 +154,21 @@ testset("need") do
   @test need(Nullable(), 1) ≡ 1
 end
 
-# @type
-@type A(a::Int,b=Dict(),c::Any=Vector{Int}())
-@assert A(1).a == 1
-@assert A(1).b == Dict()
-@assert A(1).c == Int[]
-@assert fieldtype(A, :a) == Int
-@assert fieldtype(A, :b) == Dict
-@assert fieldtype(A, :c) == Any
-
 type B; a; b; c; end
 defhash(B)
 @test hash(B(1,2,3)) == hash(B(1,2,3))
 defequals(B)
 @test B(1,2,3) == B(1,2,3)
+
+# @type
+@type A(a::Int,b=Dict(),c::Any=Vector{Int}())
+@test A(1).a == 1
+@test A(1).b == Dict()
+@test A(1).c == Int[]
+@test fieldtype(A, :a) == Int
+@test fieldtype(A, :b) == Dict
+@test fieldtype(A, :c) == Any
+
+@immutable C(a::Int,b=Dict(),c::Any=Vector{Int}())
+@test hash(C(1)) == hash(C(1))
+@test C(1) == C(1)
