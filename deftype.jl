@@ -43,9 +43,14 @@ end
 tovalue(s::Symbol) = s
 tovalue(e::Expr) = e.head ≡ :kw ? e.args[2] : e.args[1]
 
-defhash(T::DataType) = begin
+defhash(T::DataType) =
+  @eval Base.hash(a::$T, h::UInt) = $(foldr((f,e)->:(hash(a.$f, $e)), :(hash($T, h)), fieldnames(T)))
+
+defequals(T::DataType) = begin
   fields = fieldnames(T)
-  @eval Base.hash(a::$T, h::UInt) = $(foldr((f,e)->:(hash(a.$f) + $e), :(hash($T, h)), fields))
+  isempty(fields) && return nothing # already works
+  exprs = map(f->:(a.$f == b.$f), fields)
+  @eval Base.:(==)(a::$T, b::$T) = $(foldr((a,b)->:($a && $b), exprs))
 end
 
 export @immutable, @type

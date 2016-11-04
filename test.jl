@@ -1,5 +1,5 @@
+@require "./deftype" defhash defequals
 @require "." exports...
-@require "./deftype" defhash
 
 testset("flat") do
   @test flat(map(ones, [1,2,3])) == ones(6)
@@ -166,3 +166,5 @@ end
 type B; a; b; c; end
 defhash(B)
 @test hash(B(1,2,3)) == hash(B(1,2,3))
+defequals(B)
+@test B(1,2,3) == B(1,2,3)
