@@ -12,9 +12,12 @@ deftype(e::Expr, mutable) = begin
     values = map(tovalue, take(args, i))
     push!(out.args, esc(:($name($(params...)) = $name($(values...)))))
   end
-  mutable || push!(out.args, :(defhash($(esc(name))); defequals($(esc(name)))))
+  mutable || push!(out.args, :(defhash($(sans_curly(name))); defequals($(sans_curly(name)))))
   out
 end
+
+sans_curly(e::Expr) = e.args[1]|>esc
+sans_curly(e) = e|>esc
 
 isoptional(param::Expr) = param.head ≡ :kw
 isoptional(::Any) = false
