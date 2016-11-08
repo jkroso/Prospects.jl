@@ -83,7 +83,7 @@ testset("assoc") do
   @test assoc(Base.ImmutableDict(:a=>1), :b, :c) == Dict(:a=>1,:b=>:c)
   @test assoc((1,2), 1, 2) == (2,2)
   @test isa(@catch(assoc((), 1, 2)), BoundsError)
-  @test assoc((1,2), 1, :a) == (:a,2)
+  @test assoc((1,2), 2, :a) == (1,:a)
 end
 
 testset("assoc_in") do
