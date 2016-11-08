@@ -163,6 +163,10 @@ assoc{K,V}(dict::Associative{K,V}, key::K, value::V) = push!(copy(dict), key=>va
 assoc{K,V,X,Y}(dict::Associative{K,V}, key::X, value::Y) = Dict(dict..., key=>value)
 assoc{K,V}(d::Base.ImmutableDict{K,V}, key::K, value::V) = Base.ImmutableDict{K,V}(d, key, value)
 assoc(arr::AbstractArray, i, value) = (arr = copy(arr); arr[i] = value; arr)
+assoc(t::Tuple, i, value) = begin
+  0 < i < length(t) || throw(BoundsError(t, i))
+  tuple(t[1:i-1]..., value, t[i+1:end]...)
+end
 assoc{T}(o::T, key, value) =
   T(map(f -> f ≡ key ? value : getfield(o, f), fieldnames(T))...)
 

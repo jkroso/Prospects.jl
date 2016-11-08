@@ -81,6 +81,9 @@ testset("assoc") do
   @test assoc(Base.ImmutableDict{Symbol,Int64}(), :a, 1) == Base.ImmutableDict(:a=>1)
   @test assoc(Dict(:a=>[]), :b, Dict()) == Dict(:a=>[],:b=>Dict())
   @test assoc(Base.ImmutableDict(:a=>1), :b, :c) == Dict(:a=>1,:b=>:c)
+  @test assoc((1,2), 1, 2) == (2,2)
+  @test isa(@catch(assoc((), 1, 2)), BoundsError)
+  @test assoc((1,2), 1, :a) == (:a,2)
 end
 
 testset("assoc_in") do
