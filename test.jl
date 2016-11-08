@@ -1,4 +1,3 @@
-@require "./deftype" defhash defequals
 @require "." exports...
 
 testset("flat") do
@@ -157,12 +156,6 @@ testset("need") do
   @test need(Nullable(), 1) ≡ 1
 end
 
-type B; a; b; c; end
-defhash(B)
-@test hash(B(1,2,3)) == hash(B(1,2,3))
-defequals(B)
-@test B(1,2,3) == B(1,2,3)
-
 # @type
 @type A(a::Int,b=Dict(),c::Any=Vector{Int}())
 @test A(1).a == 1
@@ -172,10 +165,10 @@ defequals(B)
 @test fieldtype(A, :b) == Dict
 @test fieldtype(A, :c) == Any
 
-@immutable C(a::Int,b=Dict(),c::Any=Vector{Int}())
-@test hash(C(1)) == hash(C(1))
-@test C(1) == C(1)
-@test C(1, Dict(:a=>1)) == C(1,Dict(:a=>1), Int[])
+@immutable B(a::Int,b=Dict(),c::Any=Vector{Int}())
+@test hash(B(1)) == hash(B(1))
+@test B(1) == B(1)
+@test B(1, Dict(:a=>1)) == B(1,Dict(:a=>1), Int[])
 
-@immutable D{T}(a)
-@test D{:a}("a") == D{:a}("a")
+@immutable C{T}(a)
+@test C{:a}("a") == C{:a}("a")

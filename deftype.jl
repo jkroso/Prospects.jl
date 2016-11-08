@@ -7,20 +7,21 @@ deftype(e::Expr, mutable) = begin
   def = Expr(:type, mutable, :($name <: $super), quote $(map(tofield, args)...) end)
   out = quote Base.@__doc__($(esc(def))) end
   for (i, arg) in enumerate(args)
-    isoptional(arg) || continue
+    Meta.isexpr(arg, :kw) || continue
     params = map(tofield, take(args, i - 1))
     values = [map(tosymbol, params)..., tovalue(args[i])]
     push!(out.args, esc(:($name($(params...)) = $name($(values...)))))
   end
-  mutable || push!(out.args, :(defhash($(sans_curly(name))); defequals($(sans_curly(name)))))
+  if !mutable
+    fields = map(x->x|>tofield|>tosymbol, args)
+    push!(out.args, esc(defhash(sans_curly(name), fields)),
+                    esc(defequals(sans_curly(name), fields)))
+  end
   out
 end
 
-sans_curly(e::Expr) = e.args[1]|>esc
-sans_curly(e) = e|>esc
-
-isoptional(param::Expr) = param.head ≡ :kw
-isoptional(::Any) = false
+sans_curly(e::Expr) = e.args[1]
+sans_curly(e) = e
 
 tofield(e::Expr) =
   if e.head ≡ :kw
@@ -50,17 +51,16 @@ tovalue(e::Expr) = e.head ≡ :kw ? e.args[2] : e.args[1]
 Define a basic stable `Base.hash` which just combines the hash of an
 instance's `DataType` with the hash of its values
 """
-defhash(T::DataType) =
-  @eval Base.hash(a::$T, h::UInt) = $(foldr((f,e)->:(hash(a.$f, $e)), :(hash($T, h)), fieldnames(T)))
+defhash(T, fields) =
+  :(Base.hash(a::$T, h::UInt) = $(foldr((f,e)->:(hash(a.$f, $e)), :(hash($T, h)), fields)))
 
 """
 Define a basic `Base.==` which just recurs on each field of the type
 """
-defequals(T::DataType) = begin
-  fields = fieldnames(T)
+defequals(T, fields) = begin
   isempty(fields) && return nothing # already works
   exprs = map(f->:(a.$f == b.$f), fields)
-  @eval Base.:(==)(a::$T, b::$T) = $(foldr((a,b)->:($a && $b), exprs))
+  :(Base.:(==)(a::$T, b::$T) = $(foldr((a,b)->:($a && $b), exprs)))
 end
 
 export @immutable, @type
