@@ -9,7 +9,7 @@ deftype(e::Expr, mutable) = begin
   for (i, arg) in enumerate(args)
     isoptional(arg) || continue
     params = map(tofield, take(args, i - 1))
-    values = map(tovalue, take(args, i))
+    values = [map(tosymbol, params)..., tovalue(args[i])]
     push!(out.args, esc(:($name($(params...)) = $name($(values...)))))
   end
   mutable || push!(out.args, :(defhash($(sans_curly(name))); defequals($(sans_curly(name)))))
@@ -34,6 +34,7 @@ tofield(e::Expr) =
     e
   end
 tofield(s::Symbol) = Expr(:(::), s, Any)
+tosymbol(e::Expr) = e.args[1]
 
 extract_type(x::Any) = typeof(x)
 extract_type(e::Expr) = begin

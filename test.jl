@@ -175,6 +175,7 @@ defequals(B)
 @immutable C(a::Int,b=Dict(),c::Any=Vector{Int}())
 @test hash(C(1)) == hash(C(1))
 @test C(1) == C(1)
+@test C(1, Dict(:a=>1)) == C(1,Dict(:a=>1), Int[])
 
 @immutable D{T}(a)
 @test D{:a}("a") == D{:a}("a")
