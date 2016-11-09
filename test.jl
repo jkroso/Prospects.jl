@@ -176,3 +176,7 @@ end
 
 @immutable D(a,b::Nullable{Int})
 @test D("a").b |> isnull
+@test D("a",1) != D("a",2)
+@test D("a",1) == D("a",1)
+@test D("a",1) != D("a")
+@test D("a") == D("a")

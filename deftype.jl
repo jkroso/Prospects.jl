@@ -65,12 +65,17 @@ defhash(T, fields) = begin
   :(Base.hash{$(curlies(T)...)}(a::$T, h::UInt) = $body)
 end
 
+equals(a, b) = a == b
+equals{A,B}(a::Nullable{A}, b::Nullable{B}) = false
+equals{T}(a::Nullable{T}, b::Nullable{T}) =
+  isnull(a) ? isnull(b) : !isnull(b) && get(a) == get(b)
+
 """
 Define a basic `Base.==` which just recurs on each field of the type
 """
 defequals(T, fields) = begin
   isempty(fields) && return nothing # already works
-  exprs = map(f->:(a.$f == b.$f), fields)
+  exprs = map(f->:($equals(a.$f, b.$f)), fields)
   body = foldr((a,b)->:($a && $b), exprs)
   :(Base.:(==){$(curlies(T)...)}(a::$T, b::$T) = $body)
 end
