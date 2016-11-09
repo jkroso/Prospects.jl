@@ -14,14 +14,11 @@ deftype(e::Expr, mutable) = begin
   end
   if !mutable
     fields = map(x->x|>tofield|>tosymbol, args)
-    push!(out.args, esc(defhash(sans_curly(name), fields)),
-                    esc(defequals(sans_curly(name), fields)))
+    push!(out.args, esc(defhash(name, fields)),
+                    esc(defequals(name, fields)))
   end
   out
 end
-
-sans_curly(e::Expr) = e.args[1]
-sans_curly(e) = e
 
 tofield(e::Expr) =
   if e.head ≡ :kw
@@ -51,8 +48,10 @@ tovalue(e::Expr) = e.head ≡ :kw ? e.args[2] : e.args[1]
 Define a basic stable `Base.hash` which just combines the hash of an
 instance's `DataType` with the hash of its values
 """
-defhash(T, fields) =
-  :(Base.hash(a::$T, h::UInt) = $(foldr((f,e)->:(hash(a.$f, $e)), :(hash($T, h)), fields)))
+defhash(T, fields) = begin
+  body = foldr((f,e)->:(hash(a.$f, $e)), :(hash($T, h)), fields)
+  :(Base.hash{$(curlies(T)...)}(a::$T, h::UInt) = $body)
+end
 
 """
 Define a basic `Base.==` which just recurs on each field of the type
@@ -60,7 +59,10 @@ Define a basic `Base.==` which just recurs on each field of the type
 defequals(T, fields) = begin
   isempty(fields) && return nothing # already works
   exprs = map(f->:(a.$f == b.$f), fields)
-  :(Base.:(==)(a::$T, b::$T) = $(foldr((a,b)->:($a && $b), exprs)))
+  body = foldr((a,b)->:($a && $b), exprs)
+  :(Base.:(==){$(curlies(T)...)}(a::$T, b::$T) = $body)
 end
+
+curlies(e) = Meta.isexpr(e, :curly) ? e.args[2:end] : []
 
 export @immutable, @type

@@ -172,3 +172,4 @@ end
 
 @immutable C{T}(a)
 @test C{:a}("a") == C{:a}("a")
+@test C{:a}("a") != C{:b}("a")
