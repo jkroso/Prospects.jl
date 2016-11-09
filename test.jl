@@ -173,3 +173,6 @@ end
 @immutable C{T}(a)
 @test C{:a}("a") == C{:a}("a")
 @test C{:a}("a") != C{:b}("a")
+
+@immutable D(a,b::Nullable{Int})
+@test D("a").b |> isnull

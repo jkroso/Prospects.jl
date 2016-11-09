@@ -6,8 +6,9 @@ deftype(e::Expr, mutable) = begin
   name, args = (call.args[1], call.args[2:end])
   def = Expr(:type, mutable, :($name <: $super), quote $(map(tofield, args)...) end)
   out = quote Base.@__doc__($(esc(def))) end
-  for (i, arg) in enumerate(args)
-    Meta.isexpr(arg, :kw) || continue
+  for i in length(args):-1:1
+    arg = args[i]
+    Meta.isexpr(arg, :kw) || isnullable(arg) || break
     params = map(tofield, take(args, i - 1))
     values = [map(tosymbol, params)..., tovalue(args[i])]
     push!(out.args, esc(:($name($(params...)) = $name($(values...)))))
@@ -17,7 +18,14 @@ deftype(e::Expr, mutable) = begin
     push!(out.args, esc(defhash(name, fields)),
                     esc(defequals(name, fields)))
   end
+  push!(out.args, nothing)
   out
+end
+
+isnullable(e) = begin
+  Meta.isexpr(e, :(::)) || return false
+  t = e.args[2]
+  t ≡ :Nullable || Meta.isexpr(t, :curly) && t.args[1] ≡ :Nullable
 end
 
 tofield(e::Expr) =
@@ -42,7 +50,11 @@ extract_type(e::Expr) = begin
 end
 
 tovalue(s::Symbol) = s
-tovalue(e::Expr) = e.head ≡ :kw ? e.args[2] : e.args[1]
+tovalue(e::Expr) =
+  if     e.head ≡ :kw e.args[2]
+  elseif isnullable(e) nothing
+  else   e.args[1]
+  end
 
 """
 Define a basic stable `Base.hash` which just combines the hash of an
