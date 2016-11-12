@@ -180,3 +180,26 @@ end
 @test D("a",1) == D("a",1)
 @test D("a",1) != D("a")
 @test D("a") == D("a")
+
+testset("waitany") do
+  c = [Condition(), Condition()]
+  p=@spawn waitany(c...)
+  sleep(0)
+  notify(c[2], 1, error=true)
+  @test fetch(p).captured.ex[1] == 1
+  c = [Channel(), Channel()]
+  put!(c[1], 1)
+  @test waitany(c...)[1] == nothing
+end
+
+testset("waitall") do
+  c = [Channel(), Channel()]
+  put!(c[1], 1)
+  put!(c[2], 2)
+  @test waitall(c...) == [nothing, nothing]
+  c = Condition()
+  p = @spawn waitall(c)
+  sleep(0)
+  notify(c, 1, error=true)
+  @test fetch(p).captured.ex.exceptions[1].ex == 1
+end

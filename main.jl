@@ -271,8 +271,35 @@ need(f::Future, default::Any) = (r = fetch(f); isa(r, RemoteException) ? default
 Base.filter(f::Function, d::Base.ImmutableDict) =
   reduce((d, pair) -> f(pair...) ? Base.ImmutableDict(d, pair) : d, typeof(d)(), d)
 
+"""
+Wait for one of several conditions to trigger. Returns a `Condition`
+which will trigger with a `Tuple` of the first input to trigger along
+with the value that it triggered with
+"""
+waitany(conditions...) = begin
+  out = Condition()
+  triggered = false
+  for c in conditions
+    @schedule try
+      value = wait(c)
+      if !triggered
+        triggered = true
+        notify(out, (value, c))
+      end
+    catch e
+      if !triggered
+        triggered = true
+        notify(out, (e, c), error=true)
+      end
+    end
+  end
+  wait(out)
+end
+
+waitall(conditions...) = asyncmap(wait, conditions)
+
 export group, assoc, dissoc, compose, mapcat, flat,
        flatten, get_in, TruncatedIO, partial, @curry,
        transduce, method_defined, Field, @field_str,
        need, push, assoc_in, dissoc_in, unshift, @type,
-       @immutable
+       @immutable, waitany, waitall
