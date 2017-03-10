@@ -1,5 +1,5 @@
-@eval macro $:immutable(e::Expr) deftype(e, false) end
-@eval macro $:type(e::Expr) deftype(e, true) end
+@eval macro $:struct(e::Expr) deftype(e, false) end
+@eval macro $:mutable(e::Expr) deftype(e, true) end
 
 deftype(e::Expr, mutable) = begin
   call,super = e.head ≡ :<: ? e.args : [e, Any]
@@ -77,4 +77,4 @@ end
 
 curlies(e) = Meta.isexpr(e, :curly) ? e.args[2:end] : []
 
-export @immutable, @type
+export @struct, @mutable
