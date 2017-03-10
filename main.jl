@@ -70,7 +70,7 @@ end
 """
 Default to `getfield`
 """
-Base.get(object, key, default) = isdefined(object, key) ? getfield(object, key) : default
+Base.get(object, key, default) = isdefined(object, key::Symbol) ? getfield(object, key) : default
 
 """
 Get a value deeply nested within an associative object
