@@ -32,7 +32,7 @@ isnullable(e::Expr) = e.head ≡ :curly && e.args[1] ≡ :Nullable
 # a::Nullable → a::Union{Nullable,Any}
 nullable_param(e::Expr) =
   if isnullable(e.args[2])
-    Expr(:(::), e.args[1], :(Union{$(e.args[2]),$(get_type_param(e.args[2]))}))
+    Expr(:(::), e.args[1], :(Union{$(e.args[2]),$(get_type_param(e.args[2])),Void}))
   else
     e
   end
