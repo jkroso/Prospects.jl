@@ -8,8 +8,8 @@ deftype(e::Expr, mutable) = begin
   out = quote Base.@__doc__($(esc(def))) end
   for i in length(args):-1:1
     arg = args[i]
-    Meta.isexpr(arg, :kw) || isnullable(arg) || break
-    params = map(tofield, take(args, i - 1))
+    isoptional(arg) || break
+    params = map(nullable_param, map(tofield, take(args, i - 1)))
     values = [map(tosymbol, params)..., tovalue(args[i])]
     push!(out.args, esc(:($name($(params...)) = $name($(values...)))))
   end
@@ -22,12 +22,26 @@ deftype(e::Expr, mutable) = begin
   out
 end
 
-isnullable(e) = begin
-  Meta.isexpr(e, :(::)) || return false
-  t = e.args[2]
-  t ≡ :Nullable || Meta.isexpr(t, :curly) && t.args[1] ≡ :Nullable
-end
+isoptional(e::Symbol) = false
+isoptional(e::Expr) = e.head ≡ :kw || e.head ≡ :(::) && isnullable(e.args[2])
 
+isnullable(e) = false
+isnullable(e::Symbol) = e ≡ :Nullable
+isnullable(e::Expr) = e.head ≡ :curly && e.args[1] ≡ :Nullable
+
+# a::Nullable → a::Union{Nullable,Any}
+nullable_param(e::Expr) =
+  if isnullable(e.args[2])
+    Expr(:(::), e.args[1], :(Union{$(e.args[2]),$(get_type_param(e.args[2]))}))
+  else
+    e
+  end
+
+# Nullable{Int} → Int
+get_type_param(e::Symbol) = Any
+get_type_param(e::Expr) = e.args[2]
+
+# a=1 → a::Int
 tofield(e::Expr) =
   if e.head ≡ :kw
     if isa(e.args[1], Expr)
@@ -52,7 +66,7 @@ end
 tovalue(s::Symbol) = s
 tovalue(e::Expr) =
   if     e.head ≡ :kw e.args[2]
-  elseif isnullable(e) Expr(:call, e.args[2])
+  elseif isnullable(e.args[2]) Expr(:call, e.args[2])
   else   e.args[1]
   end
 

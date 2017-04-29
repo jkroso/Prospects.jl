@@ -183,6 +183,7 @@ end
 
 @struct E(a,b::Nullable{Int},c="c")
 @test E(1) == E(1,Nullable{Int}(),"c")
+@test E(1,2) == E(1,Nullable{Int}(2),"c")
 
 testset("waitany") do
   c = [Condition(), Condition()]
