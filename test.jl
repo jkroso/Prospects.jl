@@ -162,13 +162,13 @@ end
 @test A(1).b == Dict()
 @test A(1).c == Int[]
 @test fieldtype(A, :a) == Int
-@test fieldtype(A, :b) == Dict
+@test fieldtype(A, :b) == Dict{Any,Any}
 @test fieldtype(A, :c) == Any
 
 @struct B(a::Int,b=Dict(),c::Any=Vector{Int}())
 @test hash(B(1)) == hash(B(1))
 @test B(1) == B(1)
-@test B(1, Dict(:a=>1)) == B(1,Dict(:a=>1), Int[])
+@test B(1, Dict{Any,Any}(:a=>1)) == B(1,Dict(:a=>1), Int[])
 
 @struct C{T}(a)
 @test C{:a}("a") == C{:a}("a")
@@ -184,6 +184,9 @@ end
 @struct E(a,b::Nullable{Int},c="c")
 @test E(1) == E(1,Nullable{Int}(),"c")
 @test E(1,2) == E(1,Nullable{Int}(2),"c")
+
+@struct F(a=1//2)
+@test fieldtype(F, :a) == Rational{Int}
 
 testset("waitany") do
   c = [Condition(), Condition()]

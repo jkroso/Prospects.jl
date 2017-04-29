@@ -44,24 +44,20 @@ get_type_param(e::Expr) = e.args[2]
 # a=1 → a::Int
 tofield(e::Expr) =
   if e.head ≡ :kw
+    # a::Int=1 → a::Int
     if isa(e.args[1], Expr)
       e.args[1]
+    # a=1 → a::typeof(1)
     else
-      Expr(:(::), e.args[1], extract_type(e.args[2]))
+      Expr(:(::), e.args[1], :(typeof($(e.args[2]))))
     end
-  else
+  else # a::Int
     @assert e.head ≡ :(::)
     e
   end
 tofield(s::Symbol) = Expr(:(::), s, Any)
-tosymbol(e::Expr) = e.args[1]
 
-extract_type(x::Any) = typeof(x)
-extract_type(e::Expr) = begin
-  e.head ≡ :curly && return e
-  e.head ≡ :call && return e.args[1]
-  error("unknown parameter format $e")
-end
+tosymbol(e::Expr) = e.args[1]
 
 tovalue(s::Symbol) = s
 tovalue(e::Expr) =
