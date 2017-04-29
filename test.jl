@@ -156,8 +156,8 @@ testset("need") do
   @test need(Nullable(), 1) ≡ 1
 end
 
-# @type
-@type A(a::Int,b=Dict(),c::Any=Vector{Int}())
+# @mutable
+@mutable A(a::Int,b=Dict(),c::Any=Vector{Int}())
 @test A(1).a == 1
 @test A(1).b == Dict()
 @test A(1).c == Int[]
@@ -165,21 +165,24 @@ end
 @test fieldtype(A, :b) == Dict
 @test fieldtype(A, :c) == Any
 
-@immutable B(a::Int,b=Dict(),c::Any=Vector{Int}())
+@struct B(a::Int,b=Dict(),c::Any=Vector{Int}())
 @test hash(B(1)) == hash(B(1))
 @test B(1) == B(1)
 @test B(1, Dict(:a=>1)) == B(1,Dict(:a=>1), Int[])
 
-@immutable C{T}(a)
+@struct C{T}(a)
 @test C{:a}("a") == C{:a}("a")
 @test C{:a}("a") != C{:b}("a")
 
-@immutable D(a,b::Nullable{Int})
+@struct D(a,b::Nullable{Int})
 @test D("a").b |> isnull
 @test D("a",1) != D("a",2)
 @test D("a",1) == D("a",1)
 @test D("a",1) != D("a")
 @test D("a") == D("a")
+
+@struct E(a,b::Nullable{Int},c="c")
+@test E(1) == E(1,Nullable{Int}(),"c")
 
 testset("waitany") do
   c = [Condition(), Condition()]

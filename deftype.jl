@@ -52,7 +52,7 @@ end
 tovalue(s::Symbol) = s
 tovalue(e::Expr) =
   if     e.head ≡ :kw e.args[2]
-  elseif isnullable(e) nothing
+  elseif isnullable(e) Expr(:call, e.args[2])
   else   e.args[1]
   end
 
