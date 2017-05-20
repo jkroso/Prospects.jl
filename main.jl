@@ -1,4 +1,5 @@
 @require "./deftype" exports...
+using Base.Iterators
 
 """
 Define partial application methods for `fn` for when its called with too few arguments
@@ -110,12 +111,12 @@ Base.:(|>)(from::IO,to::IO) = (write(to, from); to)
 """
 Provide a way of limiting the length of a stream
 """
-type TruncatedIO <: IO
+mutable struct TruncatedIO <: IO
   io::IO
   nb::Int
 end
 
-type SkippedIO <: IO
+mutable struct SkippedIO <: IO
   io::IO
   nb::Int
   skipped::Bool
@@ -239,7 +240,7 @@ Run a value through a series of transducers
   f(value) ? combine(result, value) : result
 @curry mapcat(f::Function, combine::Function, result, value) = reduce(combine, result, f(value))
 
-immutable Field{name} end
+struct Field{name} end
 (f::Field{name}){name}(object::Any) = getfield(object, name)
 macro field_str(s) Field{Symbol(s)}() end
 Base.get{name}(o::Any, f::Field{name}, default::Any) = isdefined(o, name) ? getfield(o, name) : default

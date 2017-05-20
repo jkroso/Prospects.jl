@@ -1,3 +1,5 @@
+using Base.Iterators
+
 @eval macro $:struct(e::Expr) deftype(e, false) end
 @eval macro $:mutable(e::Expr) deftype(e, true) end
 

@@ -195,19 +195,19 @@ testset("waitany") do
   sleep(0)
   notify(c[2], 1, error=true)
   @test fetch(p).captured.ex[1] == 1
-  c = [Channel(), Channel()]
+  c = [Channel(32), Channel(32)]
   put!(c[1], 1)
   @test waitany(c...)[1] == nothing
 end
 
 testset("waitall") do
-  c = [Channel(), Channel()]
+  c = [Channel(32), Channel(32)]
   put!(c[1], 1)
   put!(c[2], 2)
-  @test waitall(c...) == [nothing, nothing]
+  @test waitall(c...) == (nothing, nothing)
   c = Condition()
   p = @spawn waitall(c)
   sleep(0)
-  notify(c, 1, error=true)
-  @test fetch(p).captured.ex.exceptions[1].ex == 1
+  notify(c, 1)
+  @test fetch(p) == (1,)
 end
