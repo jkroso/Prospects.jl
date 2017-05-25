@@ -15,6 +15,7 @@ testset("get(object, key)") do
   @test get(Dict(1=>2), 1) == 2
   @test get([2], 1) == 2
   @test isa(@catch(get(Dict(), 1)), KeyError)
+  @test get(Nullable(1), :value) == 1
 end
 
 testset("get_in") do
@@ -39,12 +40,12 @@ testset("compose") do
 end
 
 testset("stream piping") do
-  open(tempname(), "w+") do file
-    @test write(file, IOBuffer("abc")) == 3
-    @test IOBuffer("def") |> file === file
-    seekstart(file)
-    @test readstring(file) == "abcdef"
-  end
+  file = open(tempname(), "w+")
+  @test write(file, IOBuffer("abc")) == 3
+  @test IOBuffer("def") |> file === file
+  seekstart(file)
+  @test readstring(file) == "abcdef"
+  close(file)
 end
 
 testset("getindex(::IO, ::Integer)") do
