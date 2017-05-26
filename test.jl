@@ -16,6 +16,7 @@ testset("get(object, key)") do
   @test get([2], 1) == 2
   @test isa(@catch(get(Dict(), 1)), KeyError)
   @test get(Nullable(1), :value) == 1
+  @test get((:a,:b), 1) == :a
 end
 
 testset("get_in") do
