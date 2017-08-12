@@ -1,3 +1,4 @@
+@require "github.com/MikeInnes/MacroTools.jl" => MacroTools @capture
 @require "./deftype" exports...
 using Base.Iterators
 
@@ -5,32 +6,25 @@ using Base.Iterators
 Define partial application methods for `fn` for when its called with too few arguments
 """
 macro curry(fn::Expr)
-  params = fn.args[1].args
-  name = esc(params[1])
-  # escape Type annotations
-  params = map(params[2:end]) do p
-    !isa(p, Expr) && return p
-    p.head != :(::) && return p
-    Expr(p.head, p.args[1], esc(p.args[2]))
-  end
+  @capture(MacroTools.longdef(fn), function name_(params__) body_ end)
   out = :(begin Base.@__doc__($(esc(fn))) end)
+  name = esc(name)
   for (i, param) in enumerate(params)
-    i == endof(params) && break
+    i ≡ endof(params) && break
     isoptional(params[i+1]) && break
-    args = params[1:i]
-    types = map(arg_type, args)
+    args = map(esc, params[1:i])
     push!(out.args, quote
-      if !method_defined($name, [$(types...)])
+      if !method_defined($name, [$(map(arg_type, params[1:i])...)])
         $name($(args...)) = partial($name, $(args...))
       end
     end)
   end
-  out
+  out|>MacroTools.flatten
 end
 
-arg_type(e::Expr) = (@assert(e.head ≡ :(::)); e.args[2])
+arg_type(e::Expr) = (@assert(e.head ≡ :(::)); esc(e.args[2]))
 arg_type(s::Symbol) = :Any
-isoptional(param) = isa(param, Expr) && param.head ≡ :kw
+isoptional(param) = @capture(param, (_=_)|(_::_=_))
 
 """
 Check if any methods are defined on `f` that would be ambiguous with `types`.
