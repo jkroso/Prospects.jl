@@ -191,6 +191,9 @@ end
 @struct F(a=1//2)
 @test fieldtype(F, :a) == Rational{Int}
 
+@struct G{T}(a="")
+@test G{:a}() == G{:a}("")
+
 testset("waitany") do
   c = [Condition(), Condition()]
   p=@spawn waitany(c...)

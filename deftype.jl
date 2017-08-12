@@ -1,92 +1,78 @@
+@require "github.com/MikeInnes/MacroTools.jl" => MacroTools @capture @match
 using Base.Iterators
 
 @eval macro $:struct(e::Expr) deftype(e, false) end
 @eval macro $:mutable(e::Expr) deftype(e, true) end
 
 deftype(e::Expr, mutable) = begin
-  call,super = e.head ≡ :<: ? e.args : [e, Any]
-  name, args = (call.args[1], call.args[2:end])
-  def = Expr(:type, mutable, :($name <: $super), quote $(map(tofield, args)...) end)
+  @capture(e, (call_ <: super_)|call_)
+  @capture(call, (name_{curlies__}|name_)(args__))
+  curlies = curlies == nothing ? [] : curlies
+  T = isempty(curlies) ? name : :($name{$(curlies...)})
+  def = Expr(:type, mutable, :($T <: $(super ≡ nothing ? Any : super)),
+                             quote $(map(tofield, args)...) end)
   out = quote Base.@__doc__($(esc(def))) end
   for i in length(args):-1:1
     arg = args[i]
     isoptional(arg) || break
-    params = map(nullable_param, map(tofield, take(args, i - 1)))
-    values = [map(tosymbol, params)..., tovalue(args[i])]
-    push!(out.args, esc(:($name($(params...)) = $name($(values...)))))
+    params = map(handle_nullable, map(tofield, take(args, i - 1)))
+    values = [map(tosymbol, params)..., tovalue(arg)]
+    push!(out.args, esc(:($T($(params...)) where {$(curlies...)} = $T($(values...)))))
   end
   if !mutable
     fields = map(x->x|>tofield|>tosymbol, args)
-    push!(out.args, esc(defhash(name, fields)),
-                    esc(defequals(name, fields)))
+    push!(out.args, esc(defhash(T, curlies, fields)),
+                    esc(defequals(T, curlies, fields)))
   end
   push!(out.args, nothing)
   out
 end
 
-isoptional(e::Symbol) = false
-isoptional(e::Expr) = e.head ≡ :kw || e.head ≡ :(::) && isnullable(e.args[2])
-
-isnullable(e) = false
-isnullable(e::Symbol) = e ≡ :Nullable
-isnullable(e::Expr) = e.head ≡ :curly && e.args[1] ≡ :Nullable
+isoptional(e) = @capture(e, (_=_)|(_::_=_)|(_::Nullable)|(_::Nullable{_}))
 
 # a::Nullable → a::Union{Nullable,Any}
-nullable_param(e::Expr) =
-  if isnullable(e.args[2])
-    Expr(:(::), e.args[1], :(Union{$(e.args[2]),$(get_type_param(e.args[2])),Void}))
-  else
-    e
+handle_nullable(e::Expr) =
+  @match e begin
+    (a_::Nullable) => :($a::Union{Nullable,Any})
+    (a_::Nullable{t_}) => :($a::Union{Nullable{$t},Any})
+    _ => e
   end
-
-# Nullable{Int} → Int
-get_type_param(e::Symbol) = Any
-get_type_param(e::Expr) = e.args[2]
 
 # a=1 → a::Int
-tofield(e::Expr) =
-  if e.head ≡ :kw
-    # a::Int=1 → a::Int
-    if isa(e.args[1], Expr)
-      e.args[1]
-    # a=1 → a::typeof(1)
-    else
-      Expr(:(::), e.args[1], :(typeof($(e.args[2]))))
-    end
-  else # a::Int
-    @assert e.head ≡ :(::)
-    e
+tofield(e) =
+  @match e begin
+    (s_Symbol::t_=_) => :($s::$t)
+    (s_Symbol=default_) => :($s::typeof($default))
+    (s_Symbol) => :($s::Any)
+    (s_Symbol::t_) => e
+    _ => error("unknown field pattern $e")
   end
-tofield(s::Symbol) = Expr(:(::), s, Any)
 
 tosymbol(e::Expr) = e.args[1]
 
-tovalue(s::Symbol) = s
-tovalue(e::Expr) =
-  if     e.head ≡ :kw e.args[2]
-  elseif isnullable(e.args[2]) Expr(:call, e.args[2])
-  else   e.args[1]
+tovalue(e) =
+  @match e begin
+    (_=val_)|(_::_=val_) => val
+    (_::t_) => :($t()) # Nullable|Nullable{T}
   end
 
 """
 Define a basic stable `Base.hash` which just combines the hash of an
 instance's `DataType` with the hash of its values
 """
-defhash(T, fields) = begin
+defhash(T, curlies, fields) = begin
   body = foldr((f,e)->:(hash(a.$f, $e)), :(hash($T, h)), fields)
-  :(Base.hash{$(curlies(T)...)}(a::$T, h::UInt) = $body)
+  :(Base.hash{$(curlies...)}(a::$T, h::UInt) = $body)
 end
 
 """
 Define a basic `Base.==` which just recurs on each field of the type
 """
-defequals(T, fields) = begin
+defequals(T, curlies, fields) = begin
   isempty(fields) && return nothing # already works
   exprs = map(f->:($isequal(a.$f, b.$f)), fields)
   body = foldr((a,b)->:($a && $b), exprs)
-  :(Base.:(==){$(curlies(T)...)}(a::$T, b::$T) = $body)
+  :(Base.:(==){$(curlies...)}(a::$T, b::$T) = $body)
 end
-
-curlies(e) = Meta.isexpr(e, :curly) ? e.args[2:end] : []
 
 export @struct, @mutable
