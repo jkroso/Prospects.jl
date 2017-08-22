@@ -171,10 +171,15 @@ Add an association deep in the structure
 """
 assoc_in(a::Any, kvs::Pair...) = reduce(assoc_in, a, kvs)
 assoc_in(a::Any, kv::Pair) = begin
-  (keys,value) = kv
-  isempty(keys) && return value
-  key = first(keys)
-  assoc(a, key, assoc_in(get(a, key), drop(keys, 1)=>value))
+  (keys, value) = kv
+  l = length(keys)
+  l == 0 && return value
+  (head,) = keys
+  if l == 1
+    assoc(a, head, value)
+  else
+    assoc(a, head, assoc_in(get(a, head), drop(keys, 1)=>value))
+  end
 end
 
 """
