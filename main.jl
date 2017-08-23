@@ -101,41 +101,6 @@ sequentially through all the composed functions and returns the result
 """
 compose(fns::Any...) = input -> foldl((x, f) -> f(x), input, fns)
 
-Base.:(|>)(from::IO,to::IO) = (write(to, from); to)
-
-"""
-Provide a way of limiting the length of a stream
-"""
-mutable struct TruncatedIO <: IO
-  io::IO
-  nb::Int
-end
-
-mutable struct SkippedIO <: IO
-  io::IO
-  nb::Int
-  skipped::Bool
-end
-
-Base.truncate(io::IO, n::Integer) = TruncatedIO(io, n)
-Base.eof(io::TruncatedIO) = io.nb == 0
-Base.read(io::TruncatedIO, ::Type{UInt8}) = begin
-  io.nb -= 1
-  read(io.io, UInt8)
-end
-
-Base.read(io::SkippedIO, ::Type{UInt8}) = begin
-  if !io.skipped
-    read(io.io, io.nb - 1)
-    io.skipped = true
-  end
-  read(io.io, UInt8)
-end
-
-Base.getindex(io::IO, i::Integer) = (read(io, i - 1); read(io, UInt8))
-Base.getindex(io::IO, r::UnitRange) =
-  TruncatedIO(r.start > 1 ? SkippedIO(io, r.start, false) : io, r.stop - r.start + 1)
-
 """
 Create a copy of a collection with some elements added
 """
@@ -300,7 +265,7 @@ end
 waitall(conditions...) = asyncmap(wait, conditions)
 
 export group, assoc, dissoc, compose, mapcat, flat,
-       flatten, get_in, TruncatedIO, partial, @curry,
+       flatten, get_in, partial, @curry,
        transduce, method_defined, Field, @field_str,
        need, push, assoc_in, dissoc_in, unshift, @mutable,
        @struct, waitany, waitall

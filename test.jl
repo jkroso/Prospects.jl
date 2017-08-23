@@ -1,4 +1,4 @@
-@require "." exports...
+include("main.jl")
 
 testset("flat") do
   @test flat(map(ones, [1,2,3])) == ones(6)
@@ -38,28 +38,6 @@ testset("compose") do
   @test compose(iseven, vcat)(1) == [false]
   @test compose(ones, prod, vcat)(3) == [1]
   @test compose(iseven, Int)(3) == 0
-end
-
-testset("stream piping") do
-  file = open(tempname(), "w+")
-  @test write(file, IOBuffer("abc")) == 3
-  @test IOBuffer("def") |> file === file
-  seekstart(file)
-  @test readstring(file) == "abcdef"
-  close(file)
-end
-
-testset("getindex(::IO, ::Integer)") do
-  @test IOBuffer("abc")[2]|>Char == 'b'
-end
-
-testset("getindex(::IO, ::UnitRange)") do
-  open("main.jl") do io
-    @test readstring(io[1:100]) == readstring("main.jl")[1:100]
-  end
-  open("main.jl") do io
-    @test readstring(io[5:100]) == readstring("main.jl")[5:100]
-  end
 end
 
 testset("push") do
