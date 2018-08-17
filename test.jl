@@ -15,7 +15,7 @@ testset("get(object, key)") do
   @test get(Dict(1=>2), 1) == 2
   @test get([2], 1) == 2
   @test isa(@catch(get(Dict(), 1)), KeyError)
-  @test get(Nullable(1), :value) == 1
+  @test get(Base.UUID(1), :value) == 1
   @test get((:a,:b), 1) == :a
 end
 
@@ -131,9 +131,6 @@ end
 testset("need") do
   @test need(@spawn 1) ≡ 1
   @test isa(@catch(need(@spawn error("boom"))), ErrorException)
-  @test need(Nullable(1)) ≡ 1
-  @test isa(@catch(need(Nullable())), NullException)
-  @test need(Nullable(), 1) ≡ 1
 end
 
 # @mutable
@@ -154,17 +151,17 @@ end
 @test C{:a}("a") == C{:a}("a")
 @test C{:a}("a") != C{:b}("a")
 
-@struct D(a,b::Nullable{Int})
-@test D("a").b |> isnull
+@struct D(a,b::Union{Missing,Int})
+@test D("a").b |> ismissing
 @test D("a",1) != D("a",2)
 @test D("a",1) == D("a",1)
 @test D("a",1) != D("a")
 @test D("a") == D("a")
 
-@struct E(a,b::Nullable{Int},c="c")
-@test E(1) == E(1,Nullable{Int}(),"c")
-@test E(1,nothing) == E(1,Nullable{Int}(),"c")
-@test E(1,2) == E(1,Nullable{Int}(2),"c")
+@struct E(a,b::Union{Missing,Int},c="c")
+@test E(1) == E(1,missing,"c")
+@test E(1,missing) == E(1,missing,"c")
+@test E(1,2) == E(1,2,"c")
 
 @struct F(a=1//2)
 @test fieldtype(F, :a) == Rational{Int}

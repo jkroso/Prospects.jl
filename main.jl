@@ -1,6 +1,7 @@
 @require "github.com/MikeInnes/MacroTools.jl" => MacroTools @capture
 @require "./deftype" exports...
 using Base.Iterators
+using Distributed
 
 """
 Define partial application methods for `fn` for when its called with too few arguments
@@ -69,7 +70,7 @@ Base.get(object, key, default) = isdefined(object, key::Symbol) ? getfield(objec
 Base.get(t::Tuple, i, default) = isdefined(t, i) ? getindex(t, i) : default
 
 """
-Get a value deeply nested within an associative object
+Get a value deeply nested within an AbstractDict object
 If no value is defined it will return default
 """
 get_in(a, path, default) = begin
@@ -84,57 +85,55 @@ end
 Like the 3 argument version except it throws if it
 the `path` is not defined
 """
-get_in(a, path) = foldl(get, a, path)
+get_in(a, path) = foldl(get, path, init=a)
 
 """
 Map `f` over `itr` and flatten the result one level
 """
-mapcat(f::Function, itr) = begin
-  foldl([], itr) do result, value
-    foldl(push!, result, f(value))
+mapcat(f::Function, itr) =
+  foldl(itr, init=[]) do result, value
+    foldl(push!, f(value), init=result)
   end
-end
 
 """
 Compose a series of functions into one which takes an input and runs it
 sequentially through all the composed functions and returns the result
 """
-compose(fns::Any...) = input -> foldl((x, f) -> f(x), input, fns)
+compose(fns::Any...) = input -> foldl((x, f) -> f(x), fns, init=input)
 
 """
 Create a copy of a collection with some elements added
 """
-push(collection, items...) = reduce(push, collection, items)
+push(collection, items...) = reduce(push, items, init=collection)
 push(a::AbstractArray, item) = push!(copy(a), item)
-push{K,V}(d::Base.ImmutableDict{K,V}, p::Pair) = Base.ImmutableDict{K,V}(d, p[1], p[2])
-push(dict::Associative, item::Pair) = push!(copy(dict), item)
+push(d::Base.ImmutableDict{K,V}, p::Pair) where {K,V} = Base.ImmutableDict(d, p)
+push(dict::AbstractDict, item::Pair) = push!(copy(dict), item)
 push(object, pair::Pair) = assoc(object, pair[1], pair[2])
 
 """
 Create a copy of a sequence with some elements added at the start
 """
-unshift(collection, items...) = reduce(unshift, collection, items)
+unshift(collection, items...) = reduce(unshift, items, init=collection)
 unshift(a::AbstractArray, item) = vcat(item, a)
 unshift(a::AbstractArray, items...) = vcat(reverse(items)..., a)
 
 """
-Create a copy of an `Associative` like structure with one key=>value pair altered
+Create a copy of an `AbstractDict` like structure with one key=>value pair altered
 """
-assoc{K,V}(dict::Associative{K,V}, key::K, value::V) = push!(copy(dict), key=>value)
-assoc{K,V,X,Y}(dict::Associative{K,V}, key::X, value::Y) = Dict(dict..., key=>value)
-assoc{K,V}(d::Base.ImmutableDict{K,V}, key::K, value::V) = Base.ImmutableDict{K,V}(d, key, value)
+assoc(dict::AbstractDict{K,V}, key::K, value::V) where {K,V} = push!(copy(dict), key=>value)
+assoc(dict::AbstractDict{K,V}, key::X, value::Y) where {K,V,X,Y} = Dict(dict..., key=>value)
+assoc(d::Base.ImmutableDict{K,V}, key::K, value::V) where {K,V} = Base.ImmutableDict{K,V}(d, key, value)
 assoc(arr::AbstractArray, i, value) = (arr = copy(arr); arr[i] = value; arr)
 assoc(t::Tuple, i, value) = begin
   0 < i <= length(t) || throw(BoundsError(t, i))
   tuple(t[1:i-1]..., value, t[i+1:end]...)
 end
-assoc{T}(o::T, key, value) =
-  T(map(f -> f ≡ key ? value : getfield(o, f), fieldnames(T))...)
+assoc(o::T, key, value) where T = T(map(f -> f ≡ key ? value : getfield(o, f), fieldnames(T))...)
 
 """
 Add an association deep in the structure
 """
-assoc_in(a::Any, kvs::Pair...) = reduce(assoc_in, a, kvs)
+assoc_in(a::Any, kvs::Pair...) = reduce(assoc_in, kvs, init=a)
 assoc_in(a::Any, kv::Pair) = begin
   (keys, value) = kv
   l = length(keys)
@@ -150,15 +149,15 @@ end
 """
 Create a copy of a collection with `keys` removed
 """
-dissoc(dict::Associative, key) = delete!(copy(dict), key)
-dissoc(dict::Associative, keys...) = foldl(delete!, copy(dict), keys)
+dissoc(dict::AbstractDict, key) = delete!(copy(dict), key)
+dissoc(dict::AbstractDict, keys...) = foldl(delete!, keys, init=copy(dict))
 dissoc(d::Base.ImmutableDict, key) = filter((k,v)-> k != key, d)
 dissoc(a::AbstractArray, i) = deleteat!(copy(a), i)
 
 """
 Remove an association deep in the structure
 """
-dissoc_in(a, paths...) = reduce(dissoc_in, a, paths)
+dissoc_in(a, paths...) = reduce(dissoc_in, paths, init=a)
 dissoc_in(a, path) = begin
   isempty(path) && return a
   key = first(path)
@@ -193,9 +192,9 @@ partial(fn::Function, a...) = (b...) -> fn(a..., b...)
 """
 Run a value through a series of transducers
 """
-@curry transduce(fns::Vector, combine::Function) = foldr(partial, combine, fns)
+@curry transduce(fns::Vector, combine::Function) = foldr(partial, fns, init=combine)
 @curry transduce(fns::Vector, combine::Function, accum, value) =
-  foldr(partial, combine, fns)(accum, value)
+  foldr(partial, fns, init=combine)(accum, value)
 
 ##
 # Define some basic transducers
@@ -203,19 +202,18 @@ Run a value through a series of transducers
 @curry Base.map(f::Function, combine::Function, result, value) = combine(result, f(value))
 @curry Base.filter(f::Function, combine::Function, result, value) =
   f(value) ? combine(result, value) : result
-@curry mapcat(f::Function, combine::Function, result, value) = reduce(combine, result, f(value))
+@curry mapcat(f::Function, combine::Function, result, value) = reduce(combine, f(value), init=result)
 
 struct Field{name} end
-(f::Field{name}){name}(object::Any) = getfield(object, name)
+(f::Field{name})(object::Any) where name = getfield(object, name)
 macro field_str(s) Field{Symbol(s)}() end
-Base.get{name}(o::Any, f::Field{name}, default::Any) = isdefined(o, name) ? getfield(o, name) : default
-Base.get{name}(o::Any, f::Field{name}) = getfield(o, name)
+Base.get(o::Any, f::Field{name}, default::Any) where name = isdefined(o, name) ? getfield(o, name) : default
+Base.get(o::Any, f::Field{name}) where name = getfield(o, name)
 
 """
 Unpack a boxed value. If necessary it can wait for the value to become available
 """
 need(x::Any) = x
-need(n::Nullable) = get(n)
 need(f::Future) = begin
   result = fetch(f)
   if isa(result, RemoteException)
@@ -230,12 +228,11 @@ Instead of throwing an Error if no value is a available it will just return a
 `default` value
 """
 need(x::Any, default::Any) = try need(x) catch; default end
-need(n::Nullable, default::Any) = get(n, default)
 need(f::Future, default::Any) = (r = fetch(f); isa(r, RemoteException) ? default : r)
 
 # this was left out of base for some reason
 Base.filter(f::Function, d::Base.ImmutableDict) =
-  reduce((d, pair) -> f(pair...) ? Base.ImmutableDict(d, pair) : d, typeof(d)(), d)
+  reduce((d, pair) -> f(pair...) ? Base.ImmutableDict(d, pair) : d, d, init=typeof(d)())
 
 """
 Wait for one of several conditions to trigger. Returns a `Condition`
@@ -246,7 +243,7 @@ waitany(conditions...) = begin
   out = Condition()
   triggered = false
   for c in conditions
-    @schedule try
+    @async try
       value = wait(c)
       if !triggered
         triggered = true
