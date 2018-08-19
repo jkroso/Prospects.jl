@@ -11,7 +11,7 @@ macro curry(fn::Expr)
   out = :(begin Base.@__doc__($(esc(fn))) end)
   name = esc(name)
   for (i, param) in enumerate(params)
-    i ≡ endof(params) && break
+    i ≡ lastindex(params) && break
     isoptional(params[i+1]) && break
     args = map(esc, params[1:i])
     push!(out.args, quote
