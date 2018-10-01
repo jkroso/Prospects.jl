@@ -132,7 +132,8 @@ assoc(t::Tuple, i, value) = begin
   0 < i <= length(t) || throw(BoundsError(t, i))
   tuple(t[1:i-1]..., value, t[i+1:end]...)
 end
-assoc(o::T, key, value) where T = T(map(f -> f ≡ key ? value : getfield(o, f), fieldnames(T))...)
+assoc(o::NamedTuple, key, value) = typeof(o)(tuple(map(f -> f ≡ key ? value : getproperty(o, f), propertynames(o))...))
+assoc(o::T, key, value) where T = T(map(f -> f ≡ key ? value : getproperty(o, f), propertynames(o))...)
 
 """
 Add an association deep in the structure

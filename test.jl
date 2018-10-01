@@ -64,6 +64,7 @@ testset("assoc") do
   @test assoc((1,2), 1, 2) == (2,2)
   @test isa(@catch(assoc((), 1, 2)), BoundsError)
   @test assoc((1,2), 2, :a) == (1,:a)
+  @test assoc((a=1,b="b"), :a, 2) == (a=2,b="b")
 end
 
 testset("assoc_in") do
