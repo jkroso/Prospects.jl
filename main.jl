@@ -64,10 +64,14 @@ Base.get(a, key) = begin
 end
 
 """
-Default to `getfield`
+Default to `getproperty`
 """
-Base.get(object, key, default) = isdefined(object, key::Symbol) ? getfield(object, key) : default
+Base.get(x, key, default) = hasproperty(x, key::Symbol) ? getproperty(x, key) : default
 Base.get(t::Tuple, i, default) = isdefined(t, i) ? getindex(t, i) : default
+
+# Will eventually be in Base
+# https://github.com/JuliaLang/julia/issues/28850
+hasproperty(x, s::Symbol) = s in propertynames(x)
 
 """
 Get a value deeply nested within an AbstractDict object

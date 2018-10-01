@@ -1,3 +1,4 @@
+#! jest
 include("main.jl")
 
 testset("flat") do
