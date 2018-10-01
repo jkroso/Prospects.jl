@@ -124,6 +124,7 @@ unshift(a::AbstractArray, items...) = vcat(reverse(items)..., a)
 """
 Create a copy of an `AbstractDict` like structure with one key=>value pair altered
 """
+assoc(x, key, value, rest...) = assoc(assoc(x, key, value), rest...)
 assoc(dict::AbstractDict{K,V}, key::K, value::V) where {K,V} = push!(copy(dict), key=>value)
 assoc(dict::AbstractDict{K,V}, key::X, value::Y) where {K,V,X,Y} = Dict(dict..., key=>value)
 assoc(d::Base.ImmutableDict{K,V}, key::K, value::V) where {K,V} = Base.ImmutableDict{K,V}(d, key, value)
