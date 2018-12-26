@@ -68,6 +68,7 @@ Default to `getproperty`
 """
 Base.get(x, key, default) = hasproperty(x, key::Symbol) ? getproperty(x, key) : default
 Base.get(t::Tuple, i, default) = isdefined(t, i) ? getindex(t, i) : default
+Base.get(m::Module, name::Symbol, default) = isdefined(m, name) ? getfield(m, name) : default
 
 # Will eventually be in Base
 # https://github.com/JuliaLang/julia/issues/28850
