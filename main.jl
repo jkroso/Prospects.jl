@@ -69,6 +69,9 @@ Default to `getproperty`
 Base.get(x, key, default) = hasproperty(x, key::Symbol) ? getproperty(x, key) : default
 Base.get(t::Tuple, i, default) = isdefined(t, i) ? getindex(t, i) : default
 Base.get(m::Module, name::Symbol, default) = isdefined(m, name) ? getfield(m, name) : default
+# Dict's are really just a special type of function
+(dict::Dict)(key) = get(dict, key)
+(nt::NamedTuple)(key) = get(nt, key)
 
 # Will eventually be in Base
 # https://github.com/JuliaLang/julia/issues/28850
@@ -91,6 +94,12 @@ Like the 3 argument version except it throws if it
 the `path` is not defined
 """
 get_in(a, path) = foldl(get, path, init=a)
+
+# define keys/values for structs
+Base.keys(::T) where T = try fieldnames(T) catch; () end
+# this actually overrides a core definition so is sketchy
+# https://github.com/JuliaLang/julia/blob/71518a370213db58b8875e5939666ad6d2bb8e7d/base/essentials.jl#L791
+Base.values(t::T) where T = (get(t, k) for k in keys(t))
 
 """
 Map `f` over `itr` and flatten the result one level
