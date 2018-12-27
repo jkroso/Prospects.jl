@@ -101,6 +101,9 @@ Base.keys(::T) where T = try fieldnames(T) catch; () end
 # https://github.com/JuliaLang/julia/blob/71518a370213db58b8875e5939666ad6d2bb8e7d/base/essentials.jl#L791
 Base.values(t::T) where T = (get(t, k) for k in keys(t))
 
+Base.values(s::Set) = s
+Base.keys(s::Set) = throw("keys(::Set) is undefined")
+
 """
 Map `f` over `itr` and flatten the result one level
 """
