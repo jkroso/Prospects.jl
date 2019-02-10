@@ -297,7 +297,7 @@ parse_type(e::Expr) =
   end
 
 parse_struct(e::Expr) = begin
-  @capture e struct (T_|(T_<:super_)) fields__ end
+  @capture e struct ((T_<:super_)|T_) fields__ end
   @capture T (name_{curlies__}|name_)
   (fields=[parse_field(f) for f in fields],
    curlies=curlies==nothing ? [] : curlies,
@@ -335,7 +335,7 @@ deftype((fields, curlies, name, super)::NamedTuple, mutable) = begin
   T = isempty(curlies) ? name : :($name{$(curlies...)})
   def = Expr(:struct, mutable, :($T <: $super), quote $(map(tofield, fields)...) end)
   out = quote Base.@__doc__($(esc(def))) end
-  for i in length(fields):-1:1
+  for i in length(fields):-1:2
     field = fields[i]
     field.isoptional || break
     params = map(tofield, fields[1:i-1])
@@ -346,9 +346,16 @@ deftype((fields, curlies, name, super)::NamedTuple, mutable) = begin
     push!(out.args, esc(defhash(T, curlies, map(field"name", fields))),
                     esc(defequals(T, curlies, map(field"name", fields))))
   end
+  push!(out.args, esc(kwdef(name, curlies, fields)))
   push!(out.args, nothing)
   out
 end
+
+kwdef(name, curlies, fields) = begin
+  :($name(;$(map(to_kwarg, fields)...)) = $name($(map(field"name", fields)...)))
+end
+
+to_kwarg(f::FieldDef) = f.isoptional ? Expr(:kw, f.name, f.default) : :($(f.name))
 
 """
 Define a basic stable `Base.hash` which just combines the hash of an
