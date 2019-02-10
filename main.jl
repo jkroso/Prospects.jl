@@ -1,5 +1,4 @@
-@require "github.com/MikeInnes/MacroTools.jl" => MacroTools @capture
-@require "./deftype" exports...
+@require "github.com/MikeInnes/MacroTools.jl" => MacroTools @capture @match
 using Base.Iterators
 using Distributed
 
@@ -287,8 +286,91 @@ end
 
 waitall(conditions...) = asyncmap(wait, conditions)
 
+@eval macro $:struct(e::Expr) deftype(parse_type(e), false) end
+@eval macro $:mutable(e::Expr) deftype(parse_type(e), true) end
+
+parse_type(e::Expr) =
+  @match e begin
+    (call_ <: super_) => assoc(parse_call(call), :super, super)
+    _(__) => parse_call(e)
+    _ => parse_struct(e)
+  end
+
+parse_struct(e::Expr) = begin
+  @capture e struct (T_|(T_<:super_)) fields__ end
+  @capture T (name_{curlies__}|name_)
+  (fields=[parse_field(f) for f in fields],
+   curlies=curlies==nothing ? [] : curlies,
+   name=name,
+   super=super==nothing ? :Any : super)
+end
+
+parse_call(e::Expr) = begin
+  @capture e (name_{curlies__}|name_)(args__)
+  (fields=[parse_field(a) for a in args],
+   curlies=curlies == nothing ? [] : curlies,
+   name=name,
+   super=Any)
+end
+
+@Base.kwdef struct FieldDef
+  name::Symbol
+  type::Any=:Any
+  default::Any=missing
+  isoptional::Bool=false
+end
+
+parse_field(e) =
+  @match e begin
+    (s_Symbol::t_=default_) => FieldDef(s, t, default, true)
+    (s_Symbol=default_) => FieldDef(s, :(typeof($default)), default, true)
+    (s_Symbol::t_) => FieldDef(s, t, missing, @capture(t, (_::Union{Missing,_})|(_::Union{_,Missing})))
+    (s_Symbol) => FieldDef(name=s)
+    _ => error("unknown field definition $e")
+  end
+
+tofield(f::FieldDef) = :($(f.name)::$(f.type))
+
+deftype((fields, curlies, name, super)::NamedTuple, mutable) = begin
+  T = isempty(curlies) ? name : :($name{$(curlies...)})
+  def = Expr(:struct, mutable, :($T <: $super), quote $(map(tofield, fields)...) end)
+  out = quote Base.@__doc__($(esc(def))) end
+  for i in length(fields):-1:1
+    field = fields[i]
+    field.isoptional || break
+    params = map(tofield, fields[1:i-1])
+    values = [map(field"name", fields[1:i-1])..., field.default]
+    push!(out.args, esc(:($T($(params...)) where {$(curlies...)} = $T($(values...)))))
+  end
+  if !mutable
+    push!(out.args, esc(defhash(T, curlies, map(field"name", fields))),
+                    esc(defequals(T, curlies, map(field"name", fields))))
+  end
+  push!(out.args, nothing)
+  out
+end
+
+"""
+Define a basic stable `Base.hash` which just combines the hash of an
+instance's `DataType` with the hash of its values
+"""
+defhash(T, curlies, fields) = begin
+  body = foldr((f,e)->:(hash(a.$f, $e)), fields, init=:(hash($T, h)))
+  :(Base.hash(a::$T, h::UInt) where {$(curlies...)} = $body)
+end
+
+"""
+Define a basic `Base.==` which just recurs on each field of the type
+"""
+defequals(T, curlies, fields) = begin
+  isempty(fields) && return nothing # already works
+  exprs = map(f->:($isequal(a.$f, b.$f)), fields)
+  body = foldr((a,b)->:($a && $b), exprs)
+  :(Base.:(==)(a::$T, b::$T) where {$(curlies...)} = $body)
+end
+
 export group, assoc, dissoc, compose, mapcat, flat,
        flatten, get_in, partial, @curry,
        transduce, method_defined, Field, @field_str,
-       need, push, assoc_in, dissoc_in, unshift, @mutable,
-       @struct, waitany, waitall
+       need, push, assoc_in, dissoc_in, unshift,
+       waitany, waitall, @struct, @mutable
