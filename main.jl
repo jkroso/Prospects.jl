@@ -338,9 +338,9 @@ deftype((fields, curlies, name, super)::NamedTuple, mutable) = begin
   for i in length(fields):-1:2
     field = fields[i]
     field.isoptional || break
-    params = map(tofield, fields[1:i-1])
-    values = [map(field"name", fields[1:i-1])..., field.default]
-    push!(out.args, esc(:($T($(params...)) where {$(curlies...)} = $T($(values...)))))
+    names = map(field"name", fields[1:i-1])
+    values = [names..., field.default]
+    push!(out.args, esc(:($T($(names...)) where {$(curlies...)} = $T($(values...)))))
   end
   if !mutable
     push!(out.args, esc(defhash(T, curlies, map(field"name", fields))),
