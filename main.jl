@@ -371,7 +371,7 @@ Define a basic `Base.==` which just recurs on each field of the type
 """
 defequals(T, curlies, fields) = begin
   isempty(fields) && return nothing # already works
-  exprs = map(f->:($isequal(a.$f, b.$f)), fields)
+  exprs = map(f->:(a.$f == b.$f), fields)
   body = foldr((a,b)->:($a && $b), exprs)
   :(Base.:(==)(a::$T, b::$T) where {$(curlies...)} = $body)
 end
