@@ -345,7 +345,7 @@ parse_field(e) =
   @match e begin
     (s_Symbol::t_=default_) => FieldDef(s, t, default, true)
     (s_Symbol=default_) => FieldDef(s, :(typeof($default)), default, true)
-    (s_Symbol::t_) => FieldDef(s, t, missing, @capture(t, (_::Union{Missing,_})|(_::Union{_,Missing})))
+    (s_Symbol::t_) => FieldDef(s, t, missing, @capture(t, (Union{Missing,_}|Union{_,Missing})))
     (s_Symbol) => FieldDef(name=s)
     _ => error("unknown field definition $e")
   end
@@ -367,13 +367,13 @@ deftype((fields, curlies, name, super)::NamedTuple, mutable) = begin
     push!(out.args, esc(defhash(T, curlies, map(field"name", fields))),
                     esc(defequals(T, curlies, map(field"name", fields))))
   end
-  push!(out.args, esc(kwdef(name, curlies, fields)))
+  push!(out.args, esc(kwdef(T, curlies, fields)))
   push!(out.args, nothing)
   out
 end
 
-kwdef(name, curlies, fields) = begin
-  :($name(;$(map(to_kwarg, fields)...)) = $name($(map(field"name", fields)...)))
+kwdef(T, curlies, fields) = begin
+  :($T(;$(map(to_kwarg, fields)...)) where {$(curlies...)} = $T($(map(field"name", fields)...)))
 end
 
 to_kwarg(f::FieldDef) = f.isoptional ? Expr(:kw, f.name, f.default) : :($(f.name))
@@ -392,7 +392,7 @@ Define a basic `Base.==` which just recurs on each field of the type
 """
 defequals(T, curlies, fields) = begin
   isempty(fields) && return nothing # already works
-  exprs = map(f->:(a.$f == b.$f), fields)
+  exprs = map(f->:(Base.isequal(a.$f, b.$f)), fields)
   body = foldr((a,b)->:($a && $b), exprs)
   :(Base.:(==)(a::$T, b::$T) where {$(curlies...)} = $body)
 end
