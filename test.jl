@@ -1,4 +1,3 @@
-#! jest
 include("main.jl")
 
 testset("flat") do
@@ -10,6 +9,12 @@ testset("flat") do
   @test flat(([1], (2,3))) == [1,2,3]
   @test flat(([1])) == [1]
   @test flat([]) == []
+end
+
+testset("interleave") do
+  @test interleave([1,2,3], 'a')|>collect == Union{Int,Char}[1,'a',2,'a',3]
+  @test interleave([1], 'a')|>collect == Union{Int,Char}[1]
+  @test interleave([], 'a')|>collect == Any[]
 end
 
 testset("get(object, key)") do
