@@ -383,7 +383,7 @@ Define a basic stable `Base.hash` which just combines the hash of an
 instance's `DataType` with the hash of its values
 """
 defhash(T, curlies, fields) = begin
-  body = foldr((f,e)->:(hash(a.$f, $e)), fields, init=:(hash($T, h)))
+  body = foldr((f,e)->:(hash(getfield(a, $(QuoteNode(f))), $e)), fields, init=:(hash($T, h)))
   :(Base.hash(a::$T, h::UInt) where {$(curlies...)} = $body)
 end
 
@@ -392,7 +392,7 @@ Define a basic `Base.==` which just recurs on each field of the type
 """
 defequals(T, curlies, fields) = begin
   isempty(fields) && return nothing # already works
-  exprs = map(f->:(Base.isequal(a.$f, b.$f)), fields)
+  exprs = map(f->:(Base.isequal(getfield(a, $f), getfield(b, $f))), map(QuoteNode, fields))
   body = foldr((a,b)->:($a && $b), exprs)
   :(Base.:(==)(a::$T, b::$T) where {$(curlies...)} = $body)
 end
