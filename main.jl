@@ -252,10 +252,12 @@ Run a value through a series of transducers
 @curry mapcat(f::Function, combine::Function, result, value) = reduce(combine, f(value), init=result)
 
 struct Field{name} end
-(f::Field{name})(object::Any) where name = getfield(object, name)
+(::Field{f})(object::Any) where f = getfield(object, f)
 macro field_str(s) Field{Symbol(s)}() end
-Base.get(o::Any, f::Field{name}, default::Any) where name = isdefined(o, name) ? getfield(o, name) : default
-Base.get(o::Any, f::Field{name}) where name = getfield(o, name)
+Base.get(o, ::Field{f}, default) where f = isdefined(o, f) ? getfield(o, f) : default
+Base.get(o, ::Field{f}) where f = getfield(o, f)
+Base.getproperty(o, ::Field{f}) where f = getfield(o, f)
+Base.setproperty!(o, ::Field{f}, x) where f = setfield!(o, f, x)
 
 """
 Unpack a boxed value. If necessary it can wait for the value to become available
