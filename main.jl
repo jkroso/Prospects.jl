@@ -144,11 +144,12 @@ compose(fns::Any...) = input -> foldl((x, f) -> f(x), fns, init=input)
 """
 Create a copy of a collection with some elements added
 """
-push(collection, items...) = reduce(push, items, init=collection)
+push(collection, first, second, rest...) = push(push(push(collection, first), second), items...)
 push(a::AbstractArray, item) = push!(copy(a), item)
 push(d::Base.ImmutableDict{K,V}, p::Pair) where {K,V} = Base.ImmutableDict(d, p)
 push(dict::AbstractDict, item::Pair) = push!(copy(dict), item)
 push(object, pair::Pair) = assoc(object, pair[1], pair[2])
+push(t::Tuple, x) = tuple(t..., x)
 
 """
 Create a copy of a sequence with some elements added at the start
