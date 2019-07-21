@@ -178,6 +178,9 @@ end
 @struct G{T}(a="")
 @test G{:a}() == G{:a}("")
 
+@struct H()
+@test H() == H()
+
 testset("waitany") do
   c = [Condition(), Condition()]
   p=@spawn waitany(c...)

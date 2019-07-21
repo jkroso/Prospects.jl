@@ -144,7 +144,8 @@ compose(fns::Any...) = input -> foldl((x, f) -> f(x), fns, init=input)
 """
 Create a copy of a collection with some elements added
 """
-push(collection, first, second, rest...) = push(push(push(collection, first), second), items...)
+push(collection, first, second, rest...) = push(push(push(collection, first), second), rest...)
+push(collection) = collection
 push(a::AbstractArray, item) = push!(copy(a), item)
 push(d::Base.ImmutableDict{K,V}, p::Pair) where {K,V} = Base.ImmutableDict(d, p)
 push(dict::AbstractDict, item::Pair) = push!(copy(dict), item)
@@ -376,6 +377,7 @@ deftype((fields, curlies, name, super)::NamedTuple, mutable) = begin
 end
 
 kwdef(T, curlies, fields) = begin
+  isempty(fields) && return nothing
   :($T(;$(map(to_kwarg, fields)...)) where {$(curlies...)} = $T($(map(field"name", fields)...)))
 end
 
