@@ -1,4 +1,5 @@
-include("main.jl")
+@use "github.com/jkroso/Rutherford.jl/test.jl" @test testset @catch
+@use "." exports...
 
 testset("flat") do
   @test flat(map(ones, [1,2,3])) == ones(6)
@@ -203,3 +204,5 @@ testset("waitall") do
   notify(c, 1)
   @test fetch(p) == (1,)
 end
+
+@test convert(NamedTuple, A(1)) == (a=1, b=Dict(), c=Int[])

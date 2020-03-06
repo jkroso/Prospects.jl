@@ -402,8 +402,11 @@ defequals(T, curlies, fields) = begin
   :(Base.:(==)(a::$T, b::$T) where {$(curlies...)} = $body)
 end
 
+Base.convert(::Type{NamedTuple}, x::T) where T =
+  NamedTuple{fieldnames(T), Tuple{fieldtypes(T)...}}(tuple(values(x)...))
+
 export group, assoc, dissoc, compose, mapcat, flat,
        flatten, get_in, partial, @curry,
        transduce, method_defined, Field, @field_str,
        need, push, assoc_in, dissoc_in, unshift,
-       waitany, waitall, @struct, @mutable
+       waitany, waitall, @struct, @mutable, interleave
