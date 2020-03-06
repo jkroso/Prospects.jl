@@ -96,10 +96,6 @@ Base.get(m::Module, name::Symbol, default) = isdefined(m, name) ? getfield(m, na
 (dict::Dict)(key) = get(dict, key)
 (nt::NamedTuple)(key) = get(nt, key)
 
-# Will eventually be in Base
-# https://github.com/JuliaLang/julia/issues/28850
-hasproperty(x, s::Symbol) = s in propertynames(x)
-
 """
 Get a value deeply nested within an AbstractDict object
 If no value is defined it will return default
@@ -244,9 +240,7 @@ Run a value through a series of transducers
 @curry transduce(fns::Vector, combine::Function, accum, value) =
   foldr(partial, fns, init=combine)(accum, value)
 
-##
 # Define some basic transducers
-#
 @curry Base.map(f::Function, combine::Function, result, value) = combine(result, f(value))
 @curry Base.filter(f::Function, combine::Function, result, value) =
   f(value) ? combine(result, value) : result
