@@ -139,8 +139,8 @@ testset("transducers") do
 end
 
 testset("need") do
-  @test need(@spawn 1) ≡ 1
-  @test isa(@catch(need(@spawn error("boom"))), ErrorException)
+  @test need(@async 1) == 1
+  @test isa(@catch(need(@async error("boom"))), ErrorException)
 end
 
 # @mutable
@@ -184,12 +184,14 @@ end
 
 testset("waitany") do
   c = [Condition(), Condition()]
-  p=@spawn waitany(c...)
+  p=@async waitany(c...)
   sleep(0)
   notify(c[2], 1, error=true)
-  @test fetch(p).captured.ex[1] == 1
+  sleep(0)
+  @test need(p)[1] == 1
   c = [Channel(32), Channel(32)]
   put!(c[1], 1)
+  sleep(0)
   @test waitany(c...)[1] == nothing
 end
 
@@ -199,10 +201,11 @@ testset("waitall") do
   put!(c[2], 2)
   @test waitall(c...) == (nothing, nothing)
   c = Condition()
-  p = @spawn waitall(c)
-  sleep(0)
+  p = @async waitall(c)
+  sleep(0.1)
   notify(c, 1)
-  @test fetch(p) == (1,)
+  sleep(0.1)
+  @test need(p) == (1,)
 end
 
 @test convert(NamedTuple, A(1)) == (a=1, b=Dict(), c=Int[])

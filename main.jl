@@ -267,6 +267,17 @@ need(f::Future) = begin
   end
 end
 
+need(t::Task) = begin
+  istaskdone(t) && return t.result
+  istaskfailed(t) && throw(t.result)
+  try
+    wait(t)
+    t.result
+  catch e
+    throw(e.task.result)
+  end
+end
+
 """
 Instead of throwing an Error if no value is a available it will just return a
 `default` value
