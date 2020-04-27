@@ -1,4 +1,4 @@
-@require "github.com/MikeInnes/MacroTools.jl" => MacroTools @capture @match
+@use "github.com/MikeInnes/MacroTools.jl" => MacroTools @capture @match
 using Base.Iterators
 using Distributed
 
