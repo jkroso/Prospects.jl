@@ -182,6 +182,14 @@ end
 @struct H()
 @test H() == H()
 
+@abstract struct I
+  a
+  b
+end
+@test isabstracttype(I)
+@mutable J(c) <: I
+@test fieldnames(J) == (:a, :b, :c)
+
 testset("waitany") do
   c = [Condition(), Condition()]
   p=@async waitany(c...)

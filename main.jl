@@ -1,4 +1,4 @@
-@use "github.com/MikeInnes/MacroTools.jl" => MacroTools @capture @match
+@use "github.com/MikeInnes/MacroTools.jl" => MacroTools @capture @match rmlines
 using Base.Iterators
 using Distributed
 
@@ -316,8 +316,8 @@ end
 
 waitall(conditions...) = asyncmap(wait, conditions)
 
-@eval macro $:struct(e::Expr) deftype(parse_type(e), false) end
-@eval macro $:mutable(e::Expr) deftype(parse_type(e), true) end
+@eval macro $:struct(e::Expr) deftype(parse_type(e), false, __module__) end
+@eval macro $:mutable(e::Expr) deftype(parse_type(e), true, __module__) end
 
 parse_type(e::Expr) =
   @match e begin
@@ -361,8 +361,13 @@ parse_field(e) =
 
 tofield(f::FieldDef) = :($(f.name)::$(f.type))
 
-deftype((fields, curlies, name, super)::NamedTuple, mutable) = begin
+deftype((fields, curlies, name, super)::NamedTuple, mutable, __module__) = begin
   T = isempty(curlies) ? name : :($name{$(curlies...)})
+  s = eval(__module__, super)
+  # mixin inherited fields
+  if isabstracttype(s) && method_defined(fieldnames, [Type{s}])
+    pushfirst!(fields, (FieldDef(name=f, type=t) for (f,t) in zip(fieldnames(s), fieldtypes(s)))...)
+  end
   def = Expr(:struct, mutable, :($T <: $super), quote $(map(tofield, fields)...) end)
   out = quote Base.@__doc__($(esc(def))) end
   for i in length(fields):-1:2
@@ -407,6 +412,20 @@ defequals(T, curlies, fields) = begin
   :(Base.:(==)(a::$T, b::$T) where {$(curlies...)} = $body)
 end
 
+"Defines an abstract type with sudo fields"
+macro abstract(expr)
+  mutable, name, body = expr.args
+  fields = map(parse_field, rmlines(body).args)
+  names = field"name".(fields)
+  types = field"type".(fields)
+  quote
+    Base.@__doc__ abstract type $(esc(name)) end
+    Base.fieldcount(::Type{$(esc(name))}) = $(length(fields))
+    Base.fieldnames(::Type{$(esc(name))}) = Symbol[$(map(QuoteNode, names)...)]
+    Base.fieldtypes(::Type{$(esc(name))}) = DataType[$(map(esc, types)...)]
+  end
+end
+
 Base.convert(::Type{NamedTuple}, x::T) where T =
   NamedTuple{fieldnames(T), Tuple{fieldtypes(T)...}}(tuple(values(x)...))
 
@@ -414,4 +433,5 @@ export group, assoc, dissoc, compose, mapcat, flat,
        flatten, get_in, partial, @curry,
        transduce, method_defined, Field, @field_str,
        need, push, assoc_in, dissoc_in, unshift,
-       waitany, waitall, @struct, @mutable, interleave
+       waitany, waitall, @struct, @mutable, interleave,
+       @abstract
