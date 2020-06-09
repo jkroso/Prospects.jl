@@ -422,7 +422,7 @@ macro abstract(expr)
     Base.@__doc__ abstract type $(esc(name)) end
     Base.fieldcount(::Type{$(esc(name))}) = $(length(fields))
     Base.fieldnames(::Type{$(esc(name))}) = Symbol[$(map(QuoteNode, names)...)]
-    Base.fieldtypes(::Type{$(esc(name))}) = DataType[$(map(esc, types)...)]
+    Base.fieldtypes(::Type{$(esc(name))}) = Type[$(map(esc, types)...)]
   end
 end
 
