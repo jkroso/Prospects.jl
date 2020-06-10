@@ -365,9 +365,7 @@ deftype((fields, curlies, name, super)::NamedTuple, mutable, __module__) = begin
   T = isempty(curlies) ? name : :($name{$(curlies...)})
   s = eval(__module__, super)
   # mixin inherited fields
-  if isabstracttype(s) && method_defined(fieldnames, [Type{s}])
-    pushfirst!(fields, (FieldDef(name=f, type=t) for (f,t) in zip(fieldnames(s), fieldtypes(s)))...)
-  end
+  haskey(field_map, s) && pushfirst!(fields, field_map[s]...)
   def = Expr(:struct, mutable, :($T <: $super), quote $(map(tofield, fields)...) end)
   out = quote Base.@__doc__($(esc(def))) end
   for i in length(fields):-1:2
@@ -412,17 +410,16 @@ defequals(T, curlies, fields) = begin
   :(Base.:(==)(a::$T, b::$T) where {$(curlies...)} = $body)
 end
 
+const field_map = IdDict()
+
 "Defines an abstract type with sudo fields"
 macro abstract(expr)
   mutable, name, body = expr.args
   fields = map(parse_field, rmlines(body).args)
-  names = field"name".(fields)
-  types = field"type".(fields)
   quote
     Base.@__doc__ abstract type $(esc(name)) end
-    Base.fieldcount(::Type{$(esc(name))}) = $(length(fields))
-    Base.fieldnames(::Type{$(esc(name))}) = Symbol[$(map(QuoteNode, names)...)]
-    Base.fieldtypes(::Type{$(esc(name))}) = Type[$(map(esc, types)...)]
+    field_map[$(esc(name))] = $fields
+    nothing
   end
 end
 
