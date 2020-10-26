@@ -99,8 +99,8 @@ testset("group") do
   @test group(iseven, [1,2,3,4]) == ([2,4],[1,3])
 end
 
-testset("method_defined") do
-  @test method_defined(map,[Function,String]) == false
+testset("ismethod") do
+  @test ismethod(map, (Function,String)) == false
 end
 
 testset("curry") do

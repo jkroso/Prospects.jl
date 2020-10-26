@@ -14,7 +14,7 @@ macro curry(fn::Expr)
     isoptional(params[i+1]) && break
     args = map(esc, params[1:i])
     push!(out.args, quote
-      if !method_defined($name, [$(map(arg_type, params[1:i])...)])
+      if !ismethod($name, [$(map(arg_type, params[1:i])...)])
         $name($(args...)) = partial($name, $(args...))
       end
     end)
@@ -27,16 +27,15 @@ arg_type(s::Symbol) = :Any
 isoptional(param) = @capture(param, (_=_)|(_::_=_))
 
 """
-Check if any methods are defined on `f` that would be ambiguous with `types`.
-`method_exists` is similar but tests for applicability which is a larger set
-of methods
+Check if `f` has a specific method. It's basically a more specific
+version of `hasmethod`
 
 ```julia
-method_defined(map, [Function, String]) # => false
-method_exists(map, [Function, String]) # => true
+ismethod(map, (Function, String)) # => false
+hasmethod(map, Tuple{Function, String}) # => true
 ```
 """
-method_defined(f::Function, types::Any) = begin
+ismethod(f::Function, types::Any) = begin
   sig = Tuple{typeof(f), types...}
   any(m-> m.sig <: sig, methods(f, types))
 end
@@ -428,7 +427,7 @@ Base.convert(::Type{NamedTuple}, x::T) where T =
 
 export group, assoc, dissoc, compose, mapcat, flat,
        flatten, get_in, partial, @curry,
-       transduce, method_defined, Field, @field_str,
+       transduce, ismethod, Field, @field_str,
        need, push, assoc_in, dissoc_in, unshift,
        waitany, waitall, @struct, @mutable, interleave,
        @abstract
