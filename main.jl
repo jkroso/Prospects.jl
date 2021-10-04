@@ -364,7 +364,7 @@ deftype((fields, curlies, name, super)::NamedTuple, mutable, __module__) = begin
   T = isempty(curlies) ? name : :($name{$(curlies...)})
   s = eval(__module__, super)
   # mixin inherited fields
-  haskey(field_map, s) && pushfirst!(fields, field_map[s]...)
+  haskey(field_map, s) && push!(fields, field_map[s]...)
   def = Expr(:struct, mutable, :($T <: $super), quote $(map(tofield, fields)...) end)
   out = quote Base.@__doc__($(esc(def))) end
   for i in length(fields):-1:2
