@@ -189,6 +189,8 @@ end
 @test isabstracttype(I)
 @mutable J(c) <: I
 @test fieldnames(J) == (:c, :a, :b)
+@mutable K <: I
+@test fieldnames(K) == (:a, :b)
 
 testset("waitany") do
   c = [Condition(), Condition()]

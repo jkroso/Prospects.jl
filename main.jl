@@ -334,6 +334,7 @@ parse_struct(e::Expr) = begin
    super=super==nothing ? :Any : super)
 end
 
+parse_call(e::Symbol) = (fields=[], curlies=[], name=e, super=Any)
 parse_call(e::Expr) = begin
   @capture e (name_{curlies__}|name_)(args__)
   (fields=[parse_field(a) for a in args],
