@@ -417,10 +417,11 @@ const field_map = IdDict()
 
 "Defines an abstract type with sudo fields"
 macro abstract(expr)
-  mutable, name, body = expr.args
+  mutable, def, body = expr.args
   fields = map(parse_field, rmlines(body).args)
+  @capture def (name_ <: _)|name_
   quote
-    Base.@__doc__ abstract type $(esc(name)) end
+    Base.@__doc__ abstract type $(esc(def)) end
     field_map[$(esc(name))] = $fields
     nothing
   end
