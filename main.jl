@@ -336,11 +336,13 @@ end
 
 parse_call(e::Symbol) = (fields=[], curlies=[], name=e, super=Any)
 parse_call(e::Expr) = begin
-  @capture e (name_{curlies__}|name_)(args__)
-  (fields=[parse_field(a) for a in args],
-   curlies=curlies == nothing ? [] : curlies,
-   name=name,
-   super=Any)
+  if @capture e (name_{curlies__}|name_)(args__)
+    (fields=[parse_field(a) for a in args], curlies=curlies == nothing ? [] : curlies, name=name, super=Any)
+  elseif @capture e (name_{curlies__}|name_)
+    (fields=Any[], curlies=curlies == nothing ? [] : curlies, name=name, super=Any)
+  else
+    error("unable to parse name of your datatype")
+  end
 end
 
 @Base.kwdef struct FieldDef
