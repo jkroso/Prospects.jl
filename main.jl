@@ -1,5 +1,5 @@
 @use MacroTools: MacroTools, @capture, @match, rmlines
-@use Distributed
+@use Distributed: Future
 using Base.Iterators
 
 """
