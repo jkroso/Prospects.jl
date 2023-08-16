@@ -1,6 +1,6 @@
-@use "github.com/MikeInnes/MacroTools.jl" => MacroTools @capture @match rmlines
+@use MacroTools: MacroTools, @capture, @match, rmlines
+@use Distributed
 using Base.Iterators
-using Distributed
 
 """
 Define partial application methods for `fn` for when its called with too few arguments
