@@ -114,7 +114,7 @@ the `path` is not defined
 get_in(a, path) = foldl(get, path, init=a)
 
 # define keys/values for structs
-Base.keys(::T) where T = try fieldnames(T) catch; () end
+Base.keys(x) = propertynames(x)
 # this actually overrides a core definition so is sketchy
 # https://github.com/JuliaLang/julia/blob/71518a370213db58b8875e5939666ad6d2bb8e7d/base/essentials.jl#L791
 Base.values(t::T) where T = (get(t, k) for k in keys(t))
