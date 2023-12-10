@@ -1,4 +1,4 @@
-@use MacroTools: MacroTools, @capture, @match, rmlines
+@use MacroTools: MacroTools, @capture, @match, rmlines, prewalk
 @use Distributed: Future
 using Base.Iterators
 
@@ -421,6 +421,11 @@ const field_map = IdDict()
 macro abstract(expr)
   mutable, def, body = expr.args
   fields = map(parse_field, rmlines(body).args)
+  fields = map(fields) do field
+    assoc(field, :default, prewalk(field.default) do e
+      Meta.isexpr(e, :$) ? Base.eval(__module__, e.args[1]) : e
+    end)
+  end
   @capture def (name_ <: _)|name_
   quote
     Base.@__doc__ abstract type $(esc(def)) end
