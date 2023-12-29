@@ -166,11 +166,12 @@ assoc(t::Tuple, i, value) = begin
   0 < i <= length(t) || throw(BoundsError(t, i))
   tuple(t[1:i-1]..., value, t[i+1:end]...)
 end
-assoc(o::NamedTuple, key, value) = begin
+assoc(o::NamedTuple, key::Symbol, value) = begin
   names = propertynames(o)
   t = map(f -> f ≡ key ? value : getproperty(o, f), names)
   NamedTuple{names, typeof(t)}(t)
 end
+assoc(o::NamedTuple, key::Integer, value) = typeof(o)((i == key ? value : v for (i,v) in enumerate(o)))
 assoc(o::T, key, value) where T = T(map(f -> f ≡ key ? value : getproperty(o, f), propertynames(o))...)
 
 """
