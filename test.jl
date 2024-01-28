@@ -47,17 +47,17 @@ testset("compose") do
   @test compose(iseven, Int)(3) == 0
 end
 
-testset("push") do
-  @test push([], 1, 2) == [1,2]
-  @test push(Dict(), :a=>1) == Dict(:a=>1)
-  @test push(1//2, :num=>2) == 2//2
-  @test push(Base.ImmutableDict{Symbol,Int64}(), :a=>1) == Base.ImmutableDict(:a=>1)
+testset("append") do
+  @test append([], 1, 2) == [1,2]
+  @test append(Dict(), :a=>1) == Dict(:a=>1)
+  @test append(1//2, :num=>2) == 2//2
+  @test append(Base.ImmutableDict{Symbol,Int64}(), :a=>1) == Base.ImmutableDict(:a=>1)
 end
 
-testset("unshift") do
-  @test unshift([1,2,3], 0) == [0,1,2,3]
-  @test unshift([1,2,3], 0, -1) == [-1,0,1,2,3]
-  @test unshift([1,2,3], 0, :a) == [:a,0,1,2,3]
+testset("prepend") do
+  @test prepend([1,2,3], 0) == [0,1,2,3]
+  @test prepend([1,2,3], 0, -1) == [-1,0,1,2,3]
+  @test prepend([1,2,3], 0, :a) == [:a,0,1,2,3]
 end
 
 testset("assoc") do

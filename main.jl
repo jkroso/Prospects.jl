@@ -139,20 +139,20 @@ compose(fns::Any...) = input -> foldl((x, f) -> f(x), fns, init=input)
 """
 Create a copy of a collection with some elements added
 """
-push(collection, first, second, rest...) = push(push(push(collection, first), second), rest...)
-push(collection) = collection
-push(a::AbstractArray, item) = push!(copy(a), item)
-push(d::Base.ImmutableDict{K,V}, p::Pair) where {K,V} = Base.ImmutableDict(d, p)
-push(dict::AbstractDict, item::Pair) = push!(copy(dict), item)
-push(object, pair::Pair) = assoc(object, pair[1], pair[2])
-push(t::Tuple, x) = tuple(t..., x)
+append(collection, first, second, rest...) = append(append(append(collection, first), second), rest...)
+append(collection) = collection
+append(a::AbstractArray, item) = push!(copy(a), item)
+append(d::Base.ImmutableDict{K,V}, p::Pair) where {K,V} = Base.ImmutableDict(d, p)
+append(dict::AbstractDict, item::Pair) = push!(copy(dict), item)
+append(object, pair::Pair) = assoc(object, pair[1], pair[2])
+append(t::Tuple, x) = tuple(t..., x)
 
 """
 Create a copy of a sequence with some elements added at the start
 """
-unshift(collection, items...) = reduce(unshift, items, init=collection)
-unshift(a::AbstractArray, item) = vcat(item, a)
-unshift(a::AbstractArray, items...) = vcat(reverse(items)..., a)
+prepend(collection, items...) = reduce(prepend, items, init=collection)
+prepend(a::AbstractArray, item) = vcat(item, a)
+prepend(a::AbstractArray, items...) = vcat(reverse(items)..., a)
 
 """
 Create a copy of an `AbstractDict` like structure with one key=>value pair altered
@@ -441,6 +441,6 @@ Base.convert(::Type{NamedTuple}, x::T) where T =
 export group, assoc, dissoc, compose, mapcat, flat,
        flatten, get_in, partial, @curry,
        transduce, ismethod, Field, @field_str,
-       need, push, assoc_in, dissoc_in, unshift,
+       need, append, assoc_in, dissoc_in, prepend,
        waitany, waitall, @struct, @mutable, interleave,
        @abstract
