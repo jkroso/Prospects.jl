@@ -137,6 +137,13 @@ sequentially through all the composed functions and returns the result
 compose(fns::Any...) = input -> foldl((x, f) -> f(x), fns, init=input)
 
 """
+Create a copy of a collection with the last element removed
+"""
+pop(v::AbstractVector) = pop!(copy(v))
+pop(t::Tuple) = t[begin:end-1]
+pop(t::AbstractString) = t[begin:end-1]
+
+"""
 Create a copy of a collection with some elements added
 """
 append(collection, first, second, rest...) = append(append(append(collection, first), second), rest...)
@@ -439,7 +446,7 @@ Base.convert(::Type{NamedTuple}, x::T) where T =
   NamedTuple{fieldnames(T), Tuple{fieldtypes(T)...}}(tuple(values(x)...))
 
 export group, assoc, dissoc, compose, mapcat, flat,
-       flatten, get_in, partial, @curry,
+       flatten, get_in, partial, @curry, pop,
        transduce, ismethod, Field, @field_str,
        need, append, assoc_in, dissoc_in, prepend,
        waitany, waitall, @struct, @mutable, interleave,

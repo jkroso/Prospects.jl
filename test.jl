@@ -47,6 +47,10 @@ testset("compose") do
   @test compose(iseven, Int)(3) == 0
 end
 
+testset("pop") do
+  @test pop((1,2,3)) == (1,2)
+end
+
 testset("append") do
   @test append([], 1, 2) == [1,2]
   @test append(Dict(), :a=>1) == Dict(:a=>1)
