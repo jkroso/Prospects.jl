@@ -50,28 +50,12 @@ flat(a) = a
 """
 Lift nested arrays one level
 """
-flatten(a::Vector) = vcat(a...)
+Iterators.flatten(a::Vector) = vcat(a...)
 
 """
 Insert `x` between each value of `itr`
 """
-interleave(itr, x) = Interleave(itr, x)
-
-struct Interleave
-  itr
-  x
-end
-Base.length(i::Interleave) = max(2length(i.itr) - 1, 0)
-Base.eltype(i::Interleave) = Union{eltype(i.itr), typeof(i.x)}
-Base.iterate(i::Interleave) = iterate(i, (iterate(i.itr), false))
-Base.iterate(i::Interleave, (state, middle)) = begin
-  state == nothing && return nothing
-  if middle
-    (i.x, (state, false))
-  else
-    (state[1], (iterate(i.itr, state[2]), true))
-  end
-end
+interleave(itr, x) = take(flatten(zip(itr, repeated(x))), max(0,2length(itr)-1))
 
 """
 An unsafe get
