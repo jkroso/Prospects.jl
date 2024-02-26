@@ -135,7 +135,6 @@ append(collection) = collection
 append(a::AbstractArray, item) = push!(copy(a), item)
 append(d::Base.ImmutableDict{K,V}, p::Pair) where {K,V} = Base.ImmutableDict(d, p)
 append(dict::AbstractDict, item::Pair) = push!(copy(dict), item)
-append(object, pair::Pair) = assoc(object, pair[1], pair[2])
 append(t::Tuple, x) = tuple(t..., x)
 
 """

@@ -54,7 +54,6 @@ end
 testset("append") do
   @test append([], 1, 2) == [1,2]
   @test append(Dict(), :a=>1) == Dict(:a=>1)
-  @test append(1//2, :num=>2) == 2//2
   @test append(Base.ImmutableDict{Symbol,Int64}(), :a=>1) == Base.ImmutableDict(:a=>1)
 end
 
