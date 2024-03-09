@@ -237,10 +237,10 @@ Run a value through a series of transducers
 @curry mapcat(f::Function, combine::Function, result, value) = reduce(combine, f(value), init=result)
 
 struct Field{name} end
-(::Field{f})(object::Any) where f = getfield(object, f)
+(f::Field)(object::Any) = get(object, f)
 macro field_str(s) Field{Symbol(s)}() end
 Base.get(o, ::Field{f}, default) where f = isdefined(o, f) ? getfield(o, f) : default
-Base.get(o, ::Field{f}) where f = getfield(o, f)
+Base.get(o, f::Field) = getproperty(o, f)
 Base.getproperty(o, ::Field{f}) where f = getfield(o, f)
 Base.setproperty!(o, ::Field{f}, x) where f = setfield!(o, f, x)
 
