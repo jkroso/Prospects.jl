@@ -413,15 +413,39 @@ macro abstract(expr)
   mutable, def, body = expr.args
   fields = map(parse_field, rmlines(body).args)
   fields = map(fields) do field
-    assoc(field, :default, prewalk(field.default) do e
-      Meta.isexpr(e, :$) ? Base.eval(__module__, e.args[1]) : e
-    end)
+    assoc(field, :default, namespace(field.default, __module__),
+                 :type, namespace(field.type, __module__))
   end
   @capture def (name_ <: _)|name_
   quote
-    Base.@__doc__ abstract type $(esc(def)) end
+    Base.@__doc__ abstract type $(esc(namespacedef(def, __module__))) end
     field_map[$(esc(name))] = $fields
     nothing
+  end
+end
+
+namespace(expr::Any, mod) = expr
+namespace(expr::Symbol, mod) = Expr(:(.), mod, QuoteNode(expr))
+namespace(expr::Expr, mod) = begin
+  if expr.head == :(.)
+    Expr(:(.), namespace(expr.args[1], mod), expr.args[2])
+  elseif expr.head == :(=)
+    Expr(:(=), expr.args[1], namespace(expr.args[2], mod))
+  elseif expr.head == :abstract
+    Expr(:abstract, namespacedef(expr.args[1], mod), map(x->namespacedef(x,mod), expr.args[2:end])...)
+  else
+    Expr(expr.head, map(x->namespace(x, mod), expr.args)...)
+  end
+end
+
+namespacedef(expr::Any, mod) = expr
+namespacedef(expr::Expr, mod) = begin
+  if expr.head == :(<:)
+    Expr(:(<:), expr.args[1], namespace(expr.args[2], mod))
+  elseif expr.head == :(::)
+    Expr(:(::), expr.args[1], namespace(expr.args[2], mod))
+  else
+    namespace(expr, mod)
   end
 end
 
