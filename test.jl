@@ -155,6 +155,9 @@ end
 @test fieldtype(A, :b) == Dict{Any,Any}
 @test fieldtype(A, :c) == Any
 
+@property A.d = 1
+@test A(1).d == 1
+
 @struct B(a::Int,b=Dict(),c::Any=Vector{Int}())
 @test hash(B(1)) == hash(B(1))
 @test B(1) == B(1)

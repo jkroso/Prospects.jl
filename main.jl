@@ -452,9 +452,19 @@ end
 Base.convert(::Type{NamedTuple}, x::T) where T =
   NamedTuple{fieldnames(T), Tuple{fieldtypes(T)...}}(tuple(values(x)...))
 
+macro property(e)
+  @assert @capture e T_Symbol.p_ = def_
+  quote
+    if !ismethod($Base.getproperty, ($(esc(T)), Symbol))
+      $Base.getproperty(self::$(esc(T)), s::Symbol) = $Base.getproperty(self, Field{s}())
+    end
+    $Base.getproperty(($(esc(:self)))::$(esc(T)), ::Field{$(QuoteNode(p))}) = $(esc(def))
+  end
+end
+
 export group, assoc, dissoc, compose, mapcat, flat,
        flatten, get_in, partial, @curry, pop,
        transduce, ismethod, Field, @field_str,
        need, append, assoc_in, dissoc_in, prepend,
        waitany, waitall, @struct, @mutable, interleave,
-       @abstract
+       @abstract, @property
