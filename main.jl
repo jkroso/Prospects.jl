@@ -243,6 +243,7 @@ Base.get(o, ::Field{f}, default) where f = isdefined(o, f) ? getfield(o, f) : de
 Base.get(o, f::Field) = getproperty(o, f)
 Base.getproperty(o, ::Field{f}) where f = getfield(o, f)
 Base.setproperty!(o, ::Field{f}, x) where f = setfield!(o, f, x)
+assoc(o, key::Field{f}, value) where f = assoc(o, f, value)
 
 """
 Unpack a boxed value. If necessary it can wait for the value to become available
@@ -376,6 +377,8 @@ deftype((fields, curlies, name, super)::NamedTuple, mutable, __module__) = begin
                     esc(defequals(T, curlies, map(field"name", fields))))
   end
   push!(out.args, esc(kwdef(T, curlies, fields)))
+  push!(out.args, :(Base.getproperty(t::$T, k::Symbol) = getproperty(t, Field{k}())))
+  push!(out.args, :(Base.setproperty!(t::$T, k::Symbol, x) = setproperty!(t, Field{k}(), x)))
   push!(out.args, nothing)
   out
 end
