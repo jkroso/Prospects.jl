@@ -337,7 +337,7 @@ parse_call(e::Expr) = begin
   end
 end
 
-@Base.kwdef struct FieldDef
+@kwdef struct FieldDef
   name::Symbol
   type::Any=:Any
   default::Any=missing
@@ -452,9 +452,19 @@ namespacedef(expr::Expr, mod) = begin
   end
 end
 
-Base.convert(::Type{NamedTuple}, x::T) where T =
+Base.convert(::Type{NamedTuple}, x::T) where T = begin
   NamedTuple{fieldnames(T), Tuple{fieldtypes(T)...}}(tuple(values(x)...))
+end
 
+"""
+Defines a getproperty method on a type
+
+```julia
+@property AbstractDict.keys = keys(self)
+```
+
+The code block can access the instance using `self`
+"""
 macro property(e)
   @assert @capture e T_Symbol.p_ = def_
   quote
@@ -465,9 +475,30 @@ macro property(e)
   end
 end
 
+"""
+Works just like `@property` except the generated value will be stored in a field of the same name.
+So the type must be mutable
+"""
+macro lazyprop(expr)
+  @assert @capture expr T_Symbol.p_ = def_
+  quote
+    @assert ismutabletype($(esc(T)))
+    if !ismethod($Base.getproperty, ($(esc(T)), Symbol))
+      $Base.getproperty(self::$(esc(T)), s::Symbol) = $Base.getproperty(self, Field{s}())
+    end
+    $Base.getproperty(($(esc(:self)))::$(esc(T)), ::Field{$(QuoteNode(p))}) = begin
+      if isdefined($(esc(:self)), $(QuoteNode(p)))
+        getfield($(esc(:self)), $(QuoteNode(p)))
+      else
+        setfield!($(esc(:self)), $(QuoteNode(p)), $(esc(def)))
+      end
+    end
+  end
+end
+
 export group, assoc, dissoc, compose, mapcat, flat,
        flatten, get_in, partial, @curry, pop,
        transduce, ismethod, Field, @field_str,
        need, append, assoc_in, dissoc_in, prepend,
        waitany, waitall, @struct, @mutable, interleave,
-       @abstract, @property
+       @abstract, @property, @lazyprop
