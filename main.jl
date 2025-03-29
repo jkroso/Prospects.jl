@@ -310,28 +310,37 @@ waitall(conditions...) = asyncmap(wait, conditions)
 @eval macro $:struct(e::Expr) deftype(parse_type(e), false, __module__) end
 @eval macro $:mutable(e::Expr) deftype(parse_type(e), true, __module__) end
 
-parse_type(e::Expr) =
+macro def(e::Expr)
+  s = parse_type(e)
+  deftype(s, s.mutable, __module__, false)
+end
+
+parse_type(e::Expr) = begin
   @match e begin
     (call_ <: super_) => assoc(parse_call(call), :super, super)
     _(__) => parse_call(e)
     _ => parse_struct(e)
   end
+end
 
 parse_struct(e::Expr) = begin
-  @capture e struct ((T_<:super_)|T_) fields__ end
+  @capture e (mutable struct ((T_<:super_)|T_) fields__ end)|(struct ((T_<:super_)|T_) fields__ end)
   @capture T (name_{curlies__}|name_)
   (fields=[parse_field(f) for f in fields],
    curlies=curlies==nothing ? [] : curlies,
    name=name,
+   mutable=@capture(e, mutable struct _ __ end),
    super=super==nothing ? :Any : super)
 end
 
-parse_call(e::Symbol) = (fields=[], curlies=[], name=e, super=Any)
+parse_call(e::Symbol) = (fields=[], curlies=[], name=e, mutable=false, super=Any)
 parse_call(e::Expr) = begin
-  if @capture e (name_{curlies__}|name_)(args__)
-    (fields=[parse_field(a) for a in args], curlies=curlies == nothing ? [] : curlies, name=name, super=Any)
-  elseif @capture e (name_{curlies__}|name_)
-    (fields=Any[], curlies=curlies == nothing ? [] : curlies, name=name, super=Any)
+  if @capture e ((name_{curlies__}|name_)(args__))|(name_{curlies__}|name_)
+    (fields=isnothing(args) ? [] : [parse_field(a) for a in args],
+     curlies=curlies == nothing ? [] : curlies,
+     name=name,
+     mutable=false,
+     super=Any)
   else
     error("unable to parse name of your datatype")
   end
@@ -344,7 +353,7 @@ end
   isoptional::Bool=false
 end
 
-parse_field(e) =
+parse_field(e) = begin
   @match e begin
     (s_Symbol::t_=default_) => FieldDef(s, t, default, true)
     (s_Symbol=default_) => FieldDef(s, :(typeof($default)), default, true)
@@ -352,10 +361,11 @@ parse_field(e) =
     (s_Symbol) => FieldDef(name=s)
     _ => error("unknown field definition $e")
   end
+end
 
 tofield(f::FieldDef) = :($(f.name)::$(f.type))
 
-deftype((fields, curlies, name, super)::NamedTuple, mutable, __module__) = begin
+deftype((;fields, curlies, name, super)::NamedTuple, mutable, __module__, defoptionals=true) = begin
   T = isempty(curlies) ? name : :($name{$(curlies...)})
   s = eval(__module__, super)
   while s != Any
@@ -365,12 +375,14 @@ deftype((fields, curlies, name, super)::NamedTuple, mutable, __module__) = begin
   end
   def = Expr(:struct, mutable, :($T <: $super), quote $(map(tofield, fields)...) end)
   out = quote Base.@__doc__($(esc(def))) end
-  for i in length(fields):-1:2
-    field = fields[i]
-    field.isoptional || break
-    names = map(field"name", fields[1:i-1])
-    values = [names..., field.default]
-    push!(out.args, esc(:($T($(names...)) where {$(curlies...)} = $T($(values...)))))
+  if defoptionals
+    for i in length(fields):-1:2
+      field = fields[i]
+      field.isoptional || break
+      names = map(field"name", fields[1:i-1])
+      values = [names..., field.default]
+      push!(out.args, esc(:($T($(names...)) where {$(curlies...)} = $T($(values...)))))
+    end
   end
   if !mutable
     push!(out.args, esc(defhash(T, curlies, map(field"name", fields))),
@@ -413,7 +425,7 @@ const field_map = IdDict()
 
 "Defines an abstract type with sudo fields"
 macro abstract(expr)
-  mutable, def, body = expr.args
+  _, def, body = expr.args
   fields = map(parse_field, rmlines(body).args)
   fields = map(fields) do field
     assoc(field, :default, namespace(field.default, __module__),
@@ -501,4 +513,4 @@ export group, assoc, dissoc, compose, mapcat, flat,
        transduce, ismethod, Field, @field_str,
        need, append, assoc_in, dissoc_in, prepend,
        waitany, waitall, @struct, @mutable, interleave,
-       @abstract, @property, @lazyprop
+       @abstract, @property, @lazyprop, @def
