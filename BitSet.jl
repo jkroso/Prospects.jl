@@ -48,16 +48,19 @@ Base.:&(a::T, b::T) where T<:BitSet = T(a.value&b.value)
 Base.:⊻(a::T, b::T) where T<:BitSet = T(a.value⊻b.value)
 Base.in(a::T, b::T) where T<:BitSet = a.value&b.value == a.value
 Base.string(e::T) where {N,T<:BitSet{N}} = sprint(print, e)
-Base.print(io::IO, b::BitSet) = show(io, MIME("text/plain"), b)
+Base.show(io::IO, b::BitSet) = show(io, MIME("text/plain"), b)
+Base.show(io::IO, b::Type{<:BitSet}) = show(io, MIME("text/plain"), b)
 
 Base.show(io::IO, ::MIME"text/plain", e::T) where T<:BitSet = begin
-  names = typeof(enums[T]).parameters[1][one_positions(e.value)]
+  names = collect(keys(enums[T]))[one_positions(e.value)]
   write(io, string(nameof(T)), '.', length(names) == 1 ? names[1] : "($(join(names, ',')))")
+  nothing
 end
 
 Base.show(io::IO, ::MIME"text/plain", ::Type{T}) where T<:BitSet = begin
-  names = typeof(enums[T]).parameters[1]
-  write(io, string(nameof(T)), "::", length(names) == 1 ? names[1] : "($(join(names, ',')))")
+  names = collect(keys(enums[T]))
+  write(io, string(nameof(T)), "::", length(names) == 1 ? first(names) : "($(join(names, ',')))")
+  nothing
 end
 
 one_positions(n::T) where T<:Integer = [i+1 for i in 0:ndigits(n, base=2) if !iszero(n&(T(1)<<i))]
@@ -98,7 +101,9 @@ Base.:(:)(a::T, b::T) where T<:BitSet = begin
 end
 
 Base.nameof(b::T) where T<:BitSet = begin
-  m = log2(b.value)
+  m = b.value == 0 ? b.value : log2(b.value)+1
   @assert isinteger(m) "A BitSet composition has no single name"
   typeof(enums[T]).parameters[1][Int(m)+1]
 end
+
+Base.instances(::Type{T}) where T<:BitSet = T[T(v) for v in enums[T]]
