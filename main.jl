@@ -326,17 +326,32 @@ end
 parse_struct(e::Expr) = begin
   @capture e (mutable struct ((T_<:super_)|T_) fields__ end)|(struct ((T_<:super_)|T_) fields__ end)
   @capture T (name_{curlies__}|name_)
-  (fields=[parse_field(f) for f in fields],
+  
+  # Separate fields and constructor definitions
+  parsed_fields = []
+  constructors = []
+  
+  for field in fields
+    if is_constructor_def(field)
+      push!(constructors, field)
+    else
+      push!(parsed_fields, parse_field(field))
+    end
+  end
+  
+  (fields=parsed_fields,
+   constructors=constructors,
    curlies=curlies==nothing ? [] : curlies,
    name=name,
    mutable=@capture(e, mutable struct _ __ end),
    super=super==nothing ? :Any : super)
 end
 
-parse_call(e::Symbol) = (fields=[], curlies=[], name=e, mutable=false, super=Any)
+parse_call(e::Symbol) = (fields=[], constructors=[], curlies=[], name=e, mutable=false, super=Any)
 parse_call(e::Expr) = begin
   if @capture e ((name_{curlies__}|name_)(args__))|(name_{curlies__}|name_)
     (fields=isnothing(args) ? [] : [parse_field(a) for a in args],
+     constructors=[],
      curlies=curlies == nothing ? [] : curlies,
      name=name,
      mutable=false,
@@ -365,15 +380,29 @@ end
 
 tofield(f::FieldDef) = :($(f.name)::$(f.type))
 
-deftype((;fields, curlies, name, super)::NamedTuple, mutable, __module__, defoptionals=true) = begin
+# Helper function to identify constructor definitions
+is_constructor_def(expr) = begin
+  @capture(expr, (name_(args__) = body_) | (name_(args__) where {params__} = body_) | 
+                 (function name_(args__) body_ end) | (function name_(args__) where {params__} body_ end))
+end
+
+deftype((;fields, constructors, curlies, name, super)::NamedTuple, mutable, __module__, defoptionals=true) = begin
   T = isempty(curlies) ? name : :($name{$(curlies...)})
-  s = eval(__module__, super)
+  s = Base.eval(__module__, super)
   while s != Any
     # mixin inherited fields
     haskey(field_map, s) && push!(fields, field_map[s]...)
     s = supertype(s)
   end
-  def = Expr(:struct, mutable, :($T <: $super), quote $(map(tofield, fields)...) end)
+  # Build struct body with fields and constructors
+  struct_body = quote $(map(tofield, fields)...) end
+  
+  # Add inner constructors to struct body
+  for constructor in constructors
+    push!(struct_body.args, constructor)
+  end
+  
+  def = Expr(:struct, mutable, :($T <: $super), struct_body)
   out = quote Base.@__doc__($(esc(def))) end
   if defoptionals
     for i in length(fields):-1:2
@@ -389,6 +418,7 @@ deftype((;fields, curlies, name, super)::NamedTuple, mutable, __module__, defopt
                     esc(defequals(T, curlies, map(field"name", fields))))
   end
   push!(out.args, esc(kwdef(T, curlies, fields)))
+  
   push!(out.args, :(Base.getproperty(t::$(esc(name)), k::Symbol) = getproperty(t, Field{k}())))
   push!(out.args, :(Base.setproperty!(t::$(esc(name)), k::Symbol, x) = setproperty!(t, Field{k}(), x)))
   push!(out.args, nothing)

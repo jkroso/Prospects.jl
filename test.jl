@@ -228,3 +228,75 @@ testset("waitall") do
 end
 
 @test convert(NamedTuple, A(1)) == (a=1, b=Dict(), c=Int[])
+
+# Test types for inner constructor tests
+@def struct Point
+  x::Float64
+  y::Float64
+  Point(x, y) = new(x, y)
+  Point(x) = new(x, 0.0)
+end
+
+@def mutable struct Rectangle
+  width::Float64
+  height::Float64
+  area::Float64
+  Rectangle(w, h) = new(w, h, w * h)
+  Rectangle(side) = new(side, side, side * side)
+end
+
+@def struct Container{T}
+  value::T
+  count::Int
+  Container{T}(value) where T = new(value, 1)
+  Container{T}(value, count) where T = new(value, count)
+end
+
+@def struct Person
+  name::String
+  age::Int
+  email::String
+  Person(name, age, email) = new(name, age, email)
+  Person(name, age) = new(name, age, "")
+  Person(name) = new(name, 0, "")
+end
+
+testset("@def with inner constructors") do
+  # Test basic inner constructors
+  @test Point(1.0, 2.0) == Point(1.0, 2.0)
+  @test Point(3.0) == Point(3.0, 0.0)
+  @test Point(3.0).x == 3.0
+  @test Point(3.0).y == 0.0
+  
+  # Test mutable struct with inner constructors
+  r1 = Rectangle(3.0, 4.0)
+  r2 = Rectangle(5.0)
+  @test r1.width == 3.0
+  @test r1.height == 4.0
+  @test r1.area == 12.0
+  @test r2.width == 5.0
+  @test r2.height == 5.0
+  @test r2.area == 25.0
+  
+  # Test generic type with inner constructors
+  c1 = Container{String}("hello")
+  c2 = Container{Int}(42, 5)
+  @test c1.value == "hello"
+  @test c1.count == 1
+  @test c2.value == 42
+  @test c2.count == 5
+  
+  # Test inner constructors with keyword constructor
+  p1 = Person("Alice", 30)
+  p2 = Person("Bob")
+  p3 = Person(name="Charlie", age=25, email="charlie@example.com")
+  @test p1.name == "Alice"
+  @test p1.age == 30
+  @test p1.email == ""
+  @test p2.name == "Bob"
+  @test p2.age == 0
+  @test p2.email == ""
+  @test p3.name == "Charlie"
+  @test p3.age == 25
+  @test p3.email == "charlie@example.com"
+end
