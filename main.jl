@@ -101,7 +101,7 @@ get_in(a, path) = foldl(get, path, init=a)
 Base.keys(x) = propertynames(x)
 # this actually overrides a core definition so is sketchy
 # https://github.com/JuliaLang/julia/blob/71518a370213db58b8875e5939666ad6d2bb8e7d/base/essentials.jl#L791
-Base.values(t::T) where T = (get(t, k) for k in keys(t))
+# Base.values(t::T) where T = (get(t, k) for k in keys(t))
 
 Base.values(s::Set) = s
 Base.keys(s::Set) = throw("keys(::Set) is undefined")
@@ -326,11 +326,11 @@ end
 parse_struct(e::Expr) = begin
   @capture e (mutable struct ((T_<:super_)|T_) fields__ end)|(struct ((T_<:super_)|T_) fields__ end)
   @capture T (name_{curlies__}|name_)
-  
+
   # Separate fields and constructor definitions
   parsed_fields = []
   constructors = []
-  
+
   for field in fields
     if is_constructor_def(field)
       push!(constructors, field)
@@ -338,7 +338,7 @@ parse_struct(e::Expr) = begin
       push!(parsed_fields, parse_field(field))
     end
   end
-  
+
   (fields=parsed_fields,
    constructors=constructors,
    curlies=curlies==nothing ? [] : curlies,
@@ -382,7 +382,7 @@ tofield(f::FieldDef) = :($(f.name)::$(f.type))
 
 # Helper function to identify constructor definitions
 is_constructor_def(expr) = begin
-  @capture(expr, (name_(args__) = body_) | (name_(args__) where {params__} = body_) | 
+  @capture(expr, (name_(args__) = body_) | (name_(args__) where {params__} = body_) |
                  (function name_(args__) body_ end) | (function name_(args__) where {params__} body_ end))
 end
 
@@ -396,12 +396,12 @@ deftype((;fields, constructors, curlies, name, super)::NamedTuple, mutable, __mo
   end
   # Build struct body with fields and constructors
   struct_body = quote $(map(tofield, fields)...) end
-  
+
   # Add inner constructors to struct body
   for constructor in constructors
     push!(struct_body.args, constructor)
   end
-  
+
   def = Expr(:struct, mutable, :($T <: $super), struct_body)
   out = quote Base.@__doc__($(esc(def))) end
   if defoptionals
@@ -418,7 +418,7 @@ deftype((;fields, constructors, curlies, name, super)::NamedTuple, mutable, __mo
                     esc(defequals(T, curlies, map(field"name", fields))))
   end
   push!(out.args, esc(kwdef(T, curlies, fields)))
-  
+
   push!(out.args, :(Base.getproperty(t::$(esc(name)), k::Symbol) = getproperty(t, Field{k}())))
   push!(out.args, :(Base.setproperty!(t::$(esc(name)), k::Symbol, x) = setproperty!(t, Field{k}(), x)))
   push!(out.args, nothing)
