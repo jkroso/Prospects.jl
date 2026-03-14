@@ -106,41 +106,6 @@ testset("ismethod") do
   @test ismethod(map, (Function,String)) == false
 end
 
-testset("curry") do
-  testset("basic") do
-    @curry add(a,b,c) = a + b + c
-    @test add(1,2,3) == 6
-    @test add(1,2)(3) == 6
-    @test add(1)(2,3) == 6
-    @test add(1)(2)(3) == 6
-  end
-
-  testset("default parameters") do
-    @curry add(a,b,c=2,d=1) = a + b + c + d
-    @test add(1)(2) == 6
-    @test add(1,2) == 6
-    @test add(1)(2,2) == 6
-    @test add(1,2,2) == 6
-  end
-
-  testset("type annotations") do
-    @curry add(a::Int,b::Int,c::Int) = a + b + c
-    @test add(1,2,3) == 6
-    @test add(1,2)(3) == 6
-    @test add(1)(2,3) == 6
-    @test add(1)(2)(3) == 6
-  end
-end
-
-testset("transducers") do
-  @test map(iseven, push!, [], 1) == [false]
-  @test filter(iseven, push!, [], 1) == []
-  @test filter(iseven, push!, [], 2) == [2]
-  @test mapcat(vcat, push!, [], 1) == [1]
-  @test transduce([map(iseven), filter(identity)], push!, [], 2) == [true]
-  @test transduce([map(iseven), filter(identity)], push!, [], 1) == []
-end
-
 testset("need") do
   @test need(@async 1) == 1
   @test isa(@catch(need(@async error("boom"))), ErrorException)
@@ -267,7 +232,7 @@ testset("@def with inner constructors") do
   @test Point(3.0) == Point(3.0, 0.0)
   @test Point(3.0).x == 3.0
   @test Point(3.0).y == 0.0
-  
+
   # Test mutable struct with inner constructors
   r1 = Rectangle(3.0, 4.0)
   r2 = Rectangle(5.0)
@@ -277,7 +242,7 @@ testset("@def with inner constructors") do
   @test r2.width == 5.0
   @test r2.height == 5.0
   @test r2.area == 25.0
-  
+
   # Test generic type with inner constructors
   c1 = Container{String}("hello")
   c2 = Container{Int}(42, 5)
@@ -285,7 +250,7 @@ testset("@def with inner constructors") do
   @test c1.count == 1
   @test c2.value == 42
   @test c2.count == 5
-  
+
   # Test inner constructors with keyword constructor
   p1 = Person("Alice", 30)
   p2 = Person("Bob")

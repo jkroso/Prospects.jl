@@ -3,30 +3,6 @@
 using Base.Iterators
 
 """
-Define partial application methods for `fn` for when its called with too few arguments
-"""
-macro curry(fn::Expr)
-  @capture(MacroTools.longdef(fn), function name_(params__) body_ end)
-  out = :(begin Base.@__doc__($(esc(fn))) end)
-  name = esc(name)
-  for (i, param) in enumerate(params)
-    i ≡ lastindex(params) && break
-    isoptional(params[i+1]) && break
-    args = map(esc, params[1:i])
-    push!(out.args, quote
-      if !ismethod($name, [$(map(arg_type, params[1:i])...)])
-        $name($(args...)) = partial($name, $(args...))
-      end
-    end)
-  end
-  out|>MacroTools.flatten
-end
-
-arg_type(e::Expr) = (@assert(e.head ≡ :(::)); esc(e.args[2]))
-arg_type(s::Symbol) = :Any
-isoptional(param) = @capture(param, (_=_)|(_::_=_))
-
-"""
 Check if `f` has a specific method. It's basically a more specific
 version of `hasmethod`
 
@@ -211,30 +187,6 @@ group(f, itr) = begin
   end
   yes,no
 end
-
-"""
-Create a new `Function` with some parameters already defined.
-i.e a less abstract `Function`
-
-```julia
-isone = partial(==, 1)
-map(isone, [1,2,3]) # => [true, false, false]
-```
-"""
-partial(fn::Function, a...) = (b...) -> fn(a..., b...)
-
-"""
-Run a value through a series of transducers
-"""
-@curry transduce(fns::Vector, combine::Function) = foldr(partial, fns, init=combine)
-@curry transduce(fns::Vector, combine::Function, accum, value) =
-  foldr(partial, fns, init=combine)(accum, value)
-
-# Define some basic transducers
-@curry Base.map(f::Function, combine::Function, result, value) = combine(result, f(value))
-@curry Base.filter(f::Function, combine::Function, result, value) =
-  f(value) ? combine(result, value) : result
-@curry mapcat(f::Function, combine::Function, result, value) = reduce(combine, f(value), init=result)
 
 struct Field{name} end
 (f::Field)(object::Any) = get(object, f)
@@ -539,8 +491,7 @@ macro lazyprop(expr)
 end
 
 export group, assoc, dissoc, compose, mapcat, flat,
-       flatten, get_in, partial, @curry, pop,
-       transduce, ismethod, Field, @field_str,
+       flatten, get_in, pop, ismethod, Field, @field_str,
        need, append, assoc_in, dissoc_in, prepend,
        waitany, waitall, @struct, @mutable, interleave,
        @abstract, @property, @lazyprop, @def
