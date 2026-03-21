@@ -1,7 +1,8 @@
-@use "github.com/jkroso/Rutherford.jl/test.jl" @test testset @catch
+@use Test: @test, @testset
 @use "." exports...
+@use "./Enum.jl" @Enum
 
-testset("flat") do
+@testset "flat" begin
   @test flat(map(ones, [1,2,3])) == ones(6)
   @test flat(([1], [2,3])) == [1,2,3]
   @test flat(([1], (2,[3]))) == [1,2,3]
@@ -12,58 +13,58 @@ testset("flat") do
   @test flat([]) == []
 end
 
-testset("interleave") do
+@testset "interleave" begin
   @test interleave([1,2,3], 'a')|>collect == Union{Int,Char}[1,'a',2,'a',3]
   @test interleave([1], 'a')|>collect == [1]
   @test interleave([], 'a')|>collect == []
 end
 
-testset("get(object, key)") do
+@testset "get(object, key)" begin
   @test get(Dict(1=>2), 1) == 2
   @test get([2], 1) == 2
-  @test isa(@catch(get(Dict(), 1)), KeyError)
+  @test isa(try get(Dict(), 1) catch e; e end, KeyError)
   @test get(Base.UUID(1), :value) == 1
   @test get((:a,:b), 1) == :a
 end
 
-testset("get_in") do
+@testset "get_in" begin
   @test get_in(Dict(1=>2), ()) == Dict(1=>2)
   @test get_in(Dict(1=>2), (1,)) == 2
   @test get_in(Dict(1=>Dict(2=>3)), (1,2)) == 3
   @test get_in(Dict(1=>Dict(2=>[1,2,3])), (1,2,3)) == 3
-  @test isa(@catch(get_in(Dict(), (1,))), Exception)
+  @test isa(try get_in(Dict(), (1,)) catch e; e end, Exception)
 end
 
-testset("mapcat") do
+@testset "mapcat" begin
   @test mapcat(ones, []) == []
   @test mapcat(ones, [3]) == ones(3)
   @test mapcat(ones, [2,3]) == ones(5)
 end
 
-testset("compose") do
+@testset "compose" begin
   @test compose(vcat)(1) == [1]
   @test compose(iseven, vcat)(1) == [false]
   @test compose(ones, prod, vcat)(3) == [1]
   @test compose(iseven, Int)(3) == 0
 end
 
-testset("pop") do
+@testset "pop" begin
   @test pop((1,2,3)) == (1,2)
 end
 
-testset("append") do
+@testset "append" begin
   @test append([], 1, 2) == [1,2]
   @test append(Dict(), :a=>1) == Dict(:a=>1)
   @test append(Base.ImmutableDict{Symbol,Int64}(), :a=>1) == Base.ImmutableDict(:a=>1)
 end
 
-testset("prepend") do
+@testset "prepend" begin
   @test prepend([1,2,3], 0) == [0,1,2,3]
   @test prepend([1,2,3], 0, -1) == [-1,0,1,2,3]
   @test prepend([1,2,3], 0, :a) == [:a,0,1,2,3]
 end
 
-testset("assoc") do
+@testset "assoc" begin
   @test assoc(Dict(), :a, 1) == Dict(:a=>1)
   @test assoc(1//2, :num, 2) == 2//2
   @test assoc([1,2,3], 1, 2) == [2,2,3]
@@ -71,44 +72,44 @@ testset("assoc") do
   @test assoc(Dict(:a=>[]), :b, Dict()) == Dict(:a=>[],:b=>Dict())
   @test assoc(Base.ImmutableDict(:a=>1), :b, :c) == Dict(:a=>1,:b=>:c)
   @test assoc((1,2), 1, 2) == (2,2)
-  @test isa(@catch(assoc((), 1, 2)), BoundsError)
+  @test isa(try assoc((), 1, 2) catch e; e end, BoundsError)
   @test assoc((1,2), 2, :a) == (1,:a)
   @test assoc((a=1,b="b"), :a, 2) == (a=2,b="b")
   @test assoc((a=1,b="b"), :a, 2, :b, "c") == (a=2,b="c")
   @test assoc((a=1,), :a, "b") == (a="b",)
 end
 
-testset("assoc_in") do
+@testset "assoc_in" begin
   @test assoc_in(Dict(:a=>[:a,:b]),[:a,1]=>:b) == Dict(:a=>[:b,:b])
   @test assoc_in(Dict(:a=>[:a,:b]),[]=>:b) == :b
   @test assoc_in(Dict(:a=>[:a],:b=>2),[:a,1]=>:b, [:b]=>1) == Dict(:a=>[:b],:b=>1)
 end
 
-testset("dissoc") do
+@testset "dissoc" begin
   @test dissoc(Dict(:a=>1), :a) == Dict()
   @test dissoc(Dict(:a=>1,:b=>2), :a,:b) == Dict()
   @test dissoc(Dict(:a=>1,:b=>2,:c=>3), :a,:b) == Dict(:c=>3)
   @test dissoc([1,2,3], 2) == [1,3]
 end
 
-testset("dissoc_in") do
+@testset "dissoc_in" begin
   @test dissoc_in(Dict(:a=>1), []) == Dict(:a=>1)
   @test dissoc_in(Dict(:a=>1), [:a]) == Dict()
   @test dissoc_in(Dict(:a=>Dict(:b=>1)), [:a,:b]) == Dict(:a=>Dict())
   @test dissoc_in(Dict(:a=>1,:b=>2), [:a], [:b]) == Dict()
 end
 
-testset("group") do
+@testset "group" begin
   @test group(iseven, [1,2,3,4]) == ([2,4],[1,3])
 end
 
-testset("ismethod") do
+@testset "ismethod" begin
   @test ismethod(map, (Function,String)) == false
 end
 
-testset("need") do
+@testset "need" begin
   @test need(@async 1) == 1
-  @test isa(@catch(need(@async error("boom"))), ErrorException)
+  @test isa(try need(@async error("boom")) catch e; e end, ErrorException)
 end
 
 # @mutable
@@ -166,7 +167,28 @@ end
 @mutable K <: L
 @test fieldnames(K) == (:c, :a, :b)
 
-testset("waitany") do
+@def abstract type Animal end
+@test isabstracttype(Animal)
+@mutable Dog(breed::String) <: Animal
+@test fieldnames(Dog) == (:breed,)
+
+@def abstract struct AddressPart
+  value::String
+end
+@test isabstracttype(AddressPart)
+@mutable City(name::String) <: AddressPart
+@test fieldnames(City) == (:name, :value)
+@test City("NYC", "urban").value == "urban"
+
+@def abstract struct Vehicle
+  speed::Any
+end
+@mutable FastCar(speed::Float64) <: Vehicle
+@test fieldnames(FastCar) == (:speed,)
+@test fieldtype(FastCar, :speed) == Float64
+@test FastCar(100.0).speed == 100.0
+
+@testset "waitany" begin
   c = [Condition(), Condition()]
   p=@async waitany(c...)
   sleep(0)
@@ -179,7 +201,7 @@ testset("waitany") do
   @test waitany(c...)[1] == nothing
 end
 
-testset("waitall") do
+@testset "waitall" begin
   c = [Channel(32), Channel(32)]
   put!(c[1], 1)
   put!(c[2], 2)
@@ -192,7 +214,9 @@ testset("waitall") do
   @test need(p) == (1,)
 end
 
-@test convert(NamedTuple, A(1)) == (a=1, b=Dict(), c=Int[])
+@testset "convert to NamedTuple" begin
+  @test convert(NamedTuple, A(1)) == (a=1, b=Dict(), c=Int[])
+end
 
 # Test types for inner constructor tests
 @def struct Point
@@ -226,7 +250,7 @@ end
   Person(name) = new(name, 0, "")
 end
 
-testset("@def with inner constructors") do
+@testset "@def with inner constructors" begin
   # Test basic inner constructors
   @test Point(1.0, 2.0) == Point(1.0, 2.0)
   @test Point(3.0) == Point(3.0, 0.0)
@@ -264,4 +288,11 @@ testset("@def with inner constructors") do
   @test p3.name == "Charlie"
   @test p3.age == 25
   @test p3.email == "charlie@example.com"
+end
+
+@Enum Color red green blue
+
+@testset "ScopedEnum show" begin
+  @test sprint(show, Color.red) == "Color.red"
+  @test sprint(show, Color) == "Color::(red,green,blue)"
 end

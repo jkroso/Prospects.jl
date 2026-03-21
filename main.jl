@@ -263,8 +263,33 @@ waitall(conditions...) = asyncmap(wait, conditions)
 @eval macro $:mutable(e::Expr) deftype(parse_type(e), true, __module__) end
 
 macro def(e::Expr)
+  if e.head == :abstract
+    def = e.args[1]
+    @capture def (name_ <: _)|name_
+    return quote
+      Base.@__doc__ abstract type $(esc(namespacedef(def, __module__))) end
+      field_map[$(esc(name))] = []
+      nothing
+    end
+  end
   s = parse_type(e)
   deftype(s, s.mutable, __module__, false)
+end
+
+macro def(abstract_kw::Symbol, e::Expr)
+  abstract_kw == :abstract || error("unexpected keyword: $abstract_kw")
+  _, def, body = e.args
+  fields = map(parse_field, rmlines(body).args)
+  fields = map(fields) do field
+    assoc(field, :default, namespace(field.default, __module__),
+                 :type, namespace(field.type, __module__))
+  end
+  @capture def (name_ <: _)|name_
+  quote
+    Base.@__doc__ abstract type $(esc(namespacedef(def, __module__))) end
+    field_map[$(esc(name))] = $fields
+    nothing
+  end
 end
 
 parse_type(e::Expr) = begin
@@ -342,8 +367,13 @@ deftype((;fields, constructors, curlies, name, super)::NamedTuple, mutable, __mo
   T = isempty(curlies) ? name : :($name{$(curlies...)})
   s = Base.eval(__module__, super)
   while s != Any
-    # mixin inherited fields
-    haskey(field_map, s) && push!(fields, field_map[s]...)
+    # mixin inherited fields, skipping ones the subtype already defines
+    if haskey(field_map, s)
+      existing = Set(f.name for f in fields)
+      for f in field_map[s]
+        f.name in existing || push!(fields, f)
+      end
+    end
     s = supertype(s)
   end
   # Build struct body with fields and constructors
