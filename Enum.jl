@@ -12,6 +12,7 @@ Base.typemin(T::Type{<:ScopedEnum}) = first(values(instances(T)))
 Base.typemax(T::Type{<:ScopedEnum}) = last(values(instances(T)))
 Base.convert(T::Type{<:ScopedEnum{N}}, n::Integer) where N = T(N(n))
 Base.convert(T::Type{<:Integer}, n::ScopedEnum) = convert(T, n.value)
+Base.Integer(e::ScopedEnum) = Int(e.value)
 
 Base.nameof(e::ScopedEnum) = begin
   for (k,v) in pairs(instances(typeof(e)))

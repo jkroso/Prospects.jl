@@ -302,4 +302,6 @@ end
   @test Base.Enums.namemap(Color) == Dict(1=>:red, 2=>:green, 3=>:blue)
   @test typemin(Color) == Color.red
   @test typemax(Color) == Color.blue
+  @test Integer(Color.red) == 1
+  @test Integer(Color.blue) == 3
 end
