@@ -19,6 +19,7 @@ Base.nameof(e::ScopedEnum) = begin
   end
 end
 
+Base.Symbol(e::ScopedEnum) = nameof(e)
 Base.string(e::ScopedEnum) = string(nameof(e))
 Base.print(io::IO, e::ScopedEnum) = show(io, e)
 Base.print(io::IO, T::Type{<:ScopedEnum}) = show(io, T)
