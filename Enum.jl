@@ -7,6 +7,9 @@ Base.propertynames(T::Type{<:ScopedEnum}) = keys(enums[T])
 Base.iterate(T::Type{<:ScopedEnum}) = iterate(values(enums[T]))
 Base.iterate(T::Type{<:ScopedEnum}, state) = iterate(values(enums[T]), state)
 Base.instances(T::Type{<:ScopedEnum}) = enums[T]
+Base.Enums.namemap(T::Type{<:ScopedEnum}) = Dict(Int(v.value) => k for (k,v) in pairs(instances(T)))
+Base.typemin(T::Type{<:ScopedEnum}) = first(values(instances(T)))
+Base.typemax(T::Type{<:ScopedEnum}) = last(values(instances(T)))
 Base.convert(T::Type{<:ScopedEnum{N}}, n::Integer) where N = T(N(n))
 Base.convert(T::Type{<:Integer}, n::ScopedEnum) = convert(T, n.value)
 

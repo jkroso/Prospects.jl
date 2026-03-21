@@ -292,7 +292,14 @@ end
 
 @Enum Color red green blue
 
-@testset "ScopedEnum show" begin
+@testset "ScopedEnum" begin
   @test sprint(show, Color.red) == "Color.red"
   @test sprint(show, Color) == "Color::(red,green,blue)"
+  @test nameof(Color.red) == :red
+  @test nameof(Color.green) == :green
+  @test nameof(Color.blue) == :blue
+  @test instances(Color) == (red=Color.red, green=Color.green, blue=Color.blue)
+  @test Base.Enums.namemap(Color) == Dict(1=>:red, 2=>:green, 3=>:blue)
+  @test typemin(Color) == Color.red
+  @test typemax(Color) == Color.blue
 end
