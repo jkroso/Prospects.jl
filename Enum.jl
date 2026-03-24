@@ -1,12 +1,9 @@
 abstract type ScopedEnum{T} <: Enum{T} end
 
-const enums = Dict{DataType,NamedTuple}()
-
-Base.getproperty(T::Type{<:ScopedEnum}, sym::Symbol) = try getfield(enums[T], sym) catch; getfield(T, sym) end
-Base.propertynames(T::Type{<:ScopedEnum}) = keys(enums[T])
-Base.iterate(T::Type{<:ScopedEnum}) = iterate(values(enums[T]))
-Base.iterate(T::Type{<:ScopedEnum}, state) = iterate(values(enums[T]), state)
-Base.instances(T::Type{<:ScopedEnum}) = enums[T]
+Base.getproperty(T::Type{<:ScopedEnum}, sym::Symbol) = try getfield(instances(T), sym) catch; getfield(T, sym) end
+Base.propertynames(T::Type{<:ScopedEnum}) = keys(instances(T))
+Base.iterate(T::Type{<:ScopedEnum}) = iterate(values(instances(T)))
+Base.iterate(T::Type{<:ScopedEnum}, state) = iterate(values(instances(T)), state)
 Base.Enums.namemap(T::Type{<:ScopedEnum}) = Dict(Int(v.value) => k for (k,v) in pairs(instances(T)))
 Base.typemin(T::Type{<:ScopedEnum}) = first(values(instances(T)))
 Base.typemax(T::Type{<:ScopedEnum}) = last(values(instances(T)))
@@ -35,15 +32,15 @@ Base.show(io::IO, T::Type{<:ScopedEnum}) = begin
   nothing
 end
 
-setinstances!(::Type{T}, names::Vector{Symbol}, values=1:length(names)) where T<:ScopedEnum = begin
-  enums[T] = NamedTuple{tuple(names...), NTuple{length(names), T}}(values)
-end
-
 macro Enum(name, instances...)
   T = esc(name)
+  names_tuple = Expr(:tuple, map(QuoteNode, instances)...)
+  n = length(instances)
+  storage = esc(gensym(:instances))
   quote
     Core.@__doc__(struct $T <: ScopedEnum{UInt8} value::UInt8 end)
-    setinstances!($T, [$(map(QuoteNode, instances)...)])
+    const $storage = NamedTuple{$names_tuple, NTuple{$n, $T}}($(1:n))
+    Base.instances(::Type{$T}) = $storage
     $T
   end
 end

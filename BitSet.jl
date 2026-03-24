@@ -1,4 +1,4 @@
-@use "./Enum.jl" ScopedEnum enums setinstances!
+@use "./Enum.jl" ScopedEnum
 
 """
 Takes the concept of BitFlags and adds the interface of an Enum and a Set
@@ -26,21 +26,20 @@ macro BitSet(name, instances...)
     NT = bestfit(big"2"^n)
   end
   T = esc(name)
+  storage = esc(gensym(:instances))
+  values = Expr(:tuple, (0:n-1)...)
   quote
     Core.@__doc__(struct $T <: BitSet{$NT} value::$NT end)
-    setinstances!($T, Symbol[$(map(QuoteNode, instances)...)])
+    const $storage = NamedTuple{$(Expr(:tuple, map(QuoteNode, instances)...)), NTuple{$n, $(bestfit(big"2"^n))}}($values)
+    Base.instances(::Type{$T}) = $storage
     $T
   end
 end
 
 Base.getproperty(::Type{T}, sym::Symbol) where {N,T<:BitSet{N}} = try
-  T(N(1) << getfield(enums[T], sym))
+  T(N(1) << getfield(instances(T), sym))
 catch
   getfield(T, sym)
-end
-
-setinstances!(::Type{T}, names::Vector{Symbol}, values=0:length(names)-1) where T<:BitSet = begin
-  enums[T] = NamedTuple{tuple(names...), NTuple{length(names),bestfit(length(names))}}(tuple(values...))
 end
 
 Base.:|(a::T, b::T) where T<:BitSet = T(a.value|b.value)
@@ -52,22 +51,22 @@ Base.show(io::IO, b::BitSet) = show(io, MIME("text/plain"), b)
 Base.show(io::IO, b::Type{<:BitSet}) = show(io, MIME("text/plain"), b)
 
 Base.show(io::IO, ::MIME"text/plain", e::T) where T<:BitSet = begin
-  names = collect(keys(enums[T]))[one_positions(e.value)]
+  names = collect(keys(instances(T)))[one_positions(e.value)]
   write(io, string(nameof(T)), '.', length(names) == 1 ? names[1] : "($(join(names, ',')))")
   nothing
 end
 
 Base.show(io::IO, ::MIME"text/plain", ::Type{T}) where T<:BitSet = begin
-  names = collect(keys(enums[T]))
+  names = collect(keys(instances(T)))
   write(io, string(nameof(T)), "::", length(names) == 1 ? first(names) : "($(join(names, ',')))")
   nothing
 end
 
 one_positions(n::T) where T<:Integer = [i+1 for i in 0:ndigits(n, base=2) if !iszero(n&(T(1)<<i))]
 
-Base.length(::Type{T}) where T<:BitSet = length(enums[T])
+Base.length(::Type{T}) where T<:BitSet = length(instances(T))
 Base.eltype(::Type{T}) where T<:BitSet = T
-Base.iterate(::Type{T}, (i, values)=(1, enums[T])) where T<:BitSet = begin
+Base.iterate(::Type{T}, (i, values)=(1, instances(T))) where T<:BitSet = begin
   i > length(values) ? nothing : (values[i], (i+1, values))
 end
 
@@ -103,7 +102,5 @@ end
 Base.nameof(b::T) where T<:BitSet = begin
   m = b.value == 0 ? b.value : log2(b.value)+1
   @assert isinteger(m) "A BitSet composition has no single name"
-  typeof(enums[T]).parameters[1][Int(m)+1]
+  typeof(instances(T)).parameters[1][Int(m)+1]
 end
-
-Base.instances(::Type{T}) where T<:BitSet = T[T(v) for v in enums[T]]
