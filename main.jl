@@ -269,11 +269,12 @@ macro def(e::Expr)
     return quote
       Base.@__doc__ abstract type $(esc(namespacedef(def, __module__))) end
       field_map[$(esc(name))] = []
+      store_field_info(@__MODULE__, $(esc(name)), [])
       nothing
     end
   end
   s = parse_type(e)
-  deftype(s, s.mutable, __module__, false)
+  deftype(s, s.mutable, __module__)
 end
 
 macro def(abstract_kw::Symbol, e::Expr)
@@ -288,6 +289,7 @@ macro def(abstract_kw::Symbol, e::Expr)
   quote
     Base.@__doc__ abstract type $(esc(namespacedef(def, __module__))) end
     field_map[$(esc(name))] = $fields
+    store_field_info(@__MODULE__, $(esc(name)), $fields)
     nothing
   end
 end
@@ -368,6 +370,11 @@ deftype((;fields, constructors, curlies, name, super)::NamedTuple, mutable, __mo
   s = Base.eval(__module__, super)
   while s != Any
     # mixin inherited fields, skipping ones the subtype already defines
+    # Try field_map first, then fall back to module-local __field_info__
+    # (field_map entries are lost when loading from compiled cache)
+    if !haskey(field_map, s)
+      recover_field_info!(s)
+    end
     if haskey(field_map, s)
       existing = Set(f.name for f in fields)
       for f in field_map[s]
@@ -435,6 +442,35 @@ end
 
 const field_map = IdDict()
 
+"""
+Store field info in a module-local const dict so it survives compilation cache serialization.
+The global `field_map` IdDict is populated as a runtime side-effect that gets lost when loading
+from `.ji` cache. This function stores the same info as a module `const` which IS serialized.
+"""
+function store_field_info(mod::Module, T::DataType, fields::Vector)
+  if !isdefined(mod, :__field_info__)
+    Base.invokelatest(Core.eval, mod, :(const __field_info__ = $(Dict{Symbol,Vector}())))
+  end
+  Base.invokelatest(getfield, mod, :__field_info__)[nameof(T)] = fields
+end
+
+"""
+Recover field info from a module's serialized `__field_info__` dict when `field_map` is empty
+(typically after loading from compiled cache).
+"""
+function recover_field_info!(T::DataType)
+  mod = parentmodule(T)
+  if isdefined(mod, :__field_info__)
+    fi = getfield(mod, :__field_info__)
+    name = nameof(T)
+    if haskey(fi, name)
+      field_map[T] = fi[name]
+      return true
+    end
+  end
+  false
+end
+
 "Defines an abstract type with sudo fields"
 macro abstract(expr)
   _, def, body = expr.args
@@ -447,6 +483,7 @@ macro abstract(expr)
   quote
     Base.@__doc__ abstract type $(esc(namespacedef(def, __module__))) end
     field_map[$(esc(name))] = $fields
+    store_field_info(@__MODULE__, $(esc(name)), $fields)
     nothing
   end
 end
