@@ -228,6 +228,13 @@ end
 @BitSet Digits "0:9"
 @BitSet Channels "ch(1:4)"
 @BitSet Letters "a:z"
+@BitSet Perms """
+  read write execute
+  admin super
+"""
+@BitSet Flags """
+  on off maybe
+  """
 
 @testset "BitSet string mode" begin
   @test collect(keys(instances(Digits))) == [Symbol("$i") for i in 0:9]
@@ -236,6 +243,10 @@ end
   @test length(Channels) == 4
   @test collect(keys(instances(Letters))) == [Symbol(c) for c in 'a':'z']
   @test length(Letters) == 26
+  @test collect(keys(instances(Perms))) == [:read, :write, :execute, :admin, :super]
+  @test length(Perms) == 5
+  @test collect(keys(instances(Flags))) == [:on, :off, :maybe]
+  @test length(Flags) == 3
 end
 
 @testset "convert to NamedTuple" begin
