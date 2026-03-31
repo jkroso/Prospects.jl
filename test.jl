@@ -1,7 +1,7 @@
 @use Test: @test, @testset
 @use "." exports...
 @use "./Enum.jl" @Enum
-@use "./BitSet.jl" @BitSet @BitSet_str
+@use "./BitSet.jl" @BitSet
 
 @testset "flat" begin
   @test flat(map(ones, [1,2,3])) == ones(6)
@@ -225,11 +225,14 @@ end
   @test length(Keys) == 4
 end
 
-BitSet"Digits 0:9"
+@BitSet Digits "0:9"
+@BitSet Channels "ch(1:4)"
 
-@testset "BitSet_str" begin
+@testset "BitSet string mode" begin
   @test collect(keys(instances(Digits))) == [Symbol("$i") for i in 0:9]
   @test length(Digits) == 10
+  @test collect(keys(instances(Channels))) == [:ch1, :ch2, :ch3, :ch4]
+  @test length(Channels) == 4
 end
 
 @testset "convert to NamedTuple" begin

@@ -8,29 +8,29 @@ abstract type BitSet{T} <: ScopedEnum{T} end
 bestfit(max, T=UInt8) = (while typemax(T) < max; T = widen(T) end; T)
 
 """
-Define a new BitSet subtype `@BitSet <Name>[::InternalType] [instance names...]`
+Define a new BitSet subtype
 
 ```julia
 @BitSet Keys cmd ctrl shft opt
-# With optional internal type specifier which is useful if you want to generate the instance names seperatly
-@BitSet Keys::UInt8
+@BitSet Keys "cmd ctrl shft opt 0:9"
 ```
+
+When the second argument is a string, words are split on spaces and
+ranges like `0:9` are expanded into individual names.
 """
 macro BitSet(name, instances...)
+  if length(instances) == 1 && instances[1] isa String
+    instances = Symbol.(mapreduce(expand_word, vcat, split(instances[1]); init=String[]))
+  end
   n = length(instances)
   @assert n <= 128 "Bitset only supports 128 unique values"
-  if Meta.isexpr(name, :(::))
-    NT = eval(@__MODULE__, name.args[2])
-    name = name.args[1]
-  else
-    NT = bestfit(big"2"^n)
-  end
+  NT = bestfit(big"2"^n)
   T = esc(name)
   storage = esc(gensym(:instances))
   values = Expr(:tuple, (0:n-1)...)
   quote
     Core.@__doc__(struct $T <: BitSet{$NT} value::$NT end)
-    const $storage = NamedTuple{$(Expr(:tuple, map(QuoteNode, instances)...)), NTuple{$n, $(bestfit(big"2"^n))}}($values)
+    const $storage = NamedTuple{$(Expr(:tuple, map(QuoteNode, instances)...)), NTuple{$n, $NT}}($values)
     Base.instances(::Type{$T}) = $storage
     $T
   end
@@ -106,34 +106,12 @@ Base.nameof(b::T) where T<:BitSet = begin
 end
 
 expand_word(word) = begin
-  parts = split(word, ':')
-  length(parts) == 1 && return [word]
-  nums = map(s -> parse(Int, s), parts)
+  m = match(r"^([a-zA-Z_]*)\(?([\d]+:[\d]+(?::[\d]+)?)\)?$", word)
+  isnothing(m) && return [word]
+  prefix = m.captures[1]
+  nums = map(s -> parse(Int, s), split(m.captures[2], ':'))
   range = length(nums) == 2 ? (nums[1]:nums[2]) : (nums[1]:nums[2]:nums[3])
-  [string(i) for i in range]
+  [string(prefix, i) for i in range]
 end
 
-"""
-Define a new BitSet type: `BitSet"Keys cmd ctrl shft opt"`
-
-The first word is the type name, the rest are instance names.
-Ranges are expanded: `BitSet"Digits 0:9"`
-"""
-macro BitSet_str(str)
-  words = split(str)
-  name = Symbol(first(words))
-  instances = Symbol.(mapreduce(expand_word, vcat, words[2:end]; init=String[]))
-  n = length(instances)
-  @assert n <= 128 "Bitset only supports 128 unique values"
-  NT = bestfit(big"2"^n)
-  T = esc(name)
-  storage = esc(gensym(:instances))
-  values = Expr(:tuple, (0:n-1)...)
-  quote
-    Core.@__doc__(struct $T <: BitSet{$NT} value::$NT end)
-    const $storage = NamedTuple{$(Expr(:tuple, map(QuoteNode, instances)...)), NTuple{$n, $NT}}($values)
-    Base.instances(::Type{$T}) = $storage
-    $T
-  end
-end
 
