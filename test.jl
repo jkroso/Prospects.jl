@@ -227,12 +227,15 @@ end
 
 @BitSet Digits "0:9"
 @BitSet Channels "ch(1:4)"
+@BitSet Letters "a:z"
 
 @testset "BitSet string mode" begin
   @test collect(keys(instances(Digits))) == [Symbol("$i") for i in 0:9]
   @test length(Digits) == 10
   @test collect(keys(instances(Channels))) == [:ch1, :ch2, :ch3, :ch4]
   @test length(Channels) == 4
+  @test collect(keys(instances(Letters))) == [Symbol(c) for c in 'a':'z']
+  @test length(Letters) == 26
 end
 
 @testset "convert to NamedTuple" begin

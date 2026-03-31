@@ -106,11 +106,16 @@ Base.nameof(b::T) where T<:BitSet = begin
 end
 
 expand_word(word) = begin
-  m = match(r"^([a-zA-Z_]*)\(?([\d]+:[\d]+(?::[\d]+)?)\)?$", word)
+  m = match(r"^([a-zA-Z_]*)\(?([^)]+:[^)]+)\)?$", word)
   isnothing(m) && return [word]
   prefix = m.captures[1]
-  nums = map(s -> parse(Int, s), split(m.captures[2], ':'))
-  range = length(nums) == 2 ? (nums[1]:nums[2]) : (nums[1]:nums[2]:nums[3])
+  parts = split(m.captures[2], ':')
+  range = if all(s -> length(s) == 1 && isletter(s[1]), parts)
+    parts[1][1]:parts[end][1]
+  else
+    nums = map(s -> parse(Int, s), parts)
+    length(nums) == 2 ? (nums[1]:nums[2]) : (nums[1]:nums[2]:nums[3])
+  end
   [string(prefix, i) for i in range]
 end
 
