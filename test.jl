@@ -1,6 +1,7 @@
 @use Test: @test, @testset
 @use "." exports...
 @use "./Enum.jl" @Enum
+@use "./BitSet.jl" @BitSet @BitSet_str
 
 @testset "flat" begin
   @test flat(map(ones, [1,2,3])) == ones(6)
@@ -212,6 +213,23 @@ end
   notify(c, 1)
   sleep(0.1)
   @test need(p) == (1,)
+end
+
+@BitSet Keys cmd ctrl shft opt
+
+@testset "BitSet" begin
+  @test Keys.cmd == Keys(1)
+  @test Keys.ctrl == Keys(2)
+  @test Keys.shft == Keys(4)
+  @test Keys.opt == Keys(8)
+  @test length(Keys) == 4
+end
+
+BitSet"Digits 0:9"
+
+@testset "BitSet_str" begin
+  @test collect(keys(instances(Digits))) == [Symbol("$i") for i in 0:9]
+  @test length(Digits) == 10
 end
 
 @testset "convert to NamedTuple" begin

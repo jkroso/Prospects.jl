@@ -104,3 +104,36 @@ Base.nameof(b::T) where T<:BitSet = begin
   @assert isinteger(m) "A BitSet composition has no single name"
   typeof(instances(T)).parameters[1][Int(m)+1]
 end
+
+expand_word(word) = begin
+  parts = split(word, ':')
+  length(parts) == 1 && return [word]
+  nums = map(s -> parse(Int, s), parts)
+  range = length(nums) == 2 ? (nums[1]:nums[2]) : (nums[1]:nums[2]:nums[3])
+  [string(i) for i in range]
+end
+
+"""
+Define a new BitSet type: `BitSet"Keys cmd ctrl shft opt"`
+
+The first word is the type name, the rest are instance names.
+Ranges are expanded: `BitSet"Digits 0:9"`
+"""
+macro BitSet_str(str)
+  words = split(str)
+  name = Symbol(first(words))
+  instances = Symbol.(mapreduce(expand_word, vcat, words[2:end]; init=String[]))
+  n = length(instances)
+  @assert n <= 128 "Bitset only supports 128 unique values"
+  NT = bestfit(big"2"^n)
+  T = esc(name)
+  storage = esc(gensym(:instances))
+  values = Expr(:tuple, (0:n-1)...)
+  quote
+    Core.@__doc__(struct $T <: BitSet{$NT} value::$NT end)
+    const $storage = NamedTuple{$(Expr(:tuple, map(QuoteNode, instances)...)), NTuple{$n, $NT}}($values)
+    Base.instances(::Type{$T}) = $storage
+    $T
+  end
+end
+

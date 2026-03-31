@@ -514,7 +514,7 @@ namespacedef(expr::Expr, mod) = begin
 end
 
 Base.convert(::Type{NamedTuple}, x::T) where T = begin
-  NamedTuple{fieldnames(T), Tuple{fieldtypes(T)...}}(tuple(values(x)...))
+  NamedTuple{fieldnames(T), Tuple{fieldtypes(T)...}}(tuple((getfield(x, f) for f in fieldnames(T))...))
 end
 
 """
