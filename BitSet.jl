@@ -100,9 +100,10 @@ Base.:(:)(a::T, b::T) where T<:BitSet = begin
 end
 
 Base.nameof(b::T) where T<:BitSet = begin
-  m = b.value == 0 ? b.value : log2(b.value)+1
+  @assert b.value != 0 "empty bitset has no name"
+  m = log2(b.value)+1
   @assert isinteger(m) "A BitSet composition has no single name"
-  typeof(instances(T)).parameters[1][Int(m)+1]
+  typeof(instances(T)).parameters[1][Int(m)]
 end
 
 expand_word(word) = begin
