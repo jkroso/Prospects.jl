@@ -36,10 +36,23 @@ macro BitSet(name, instances...)
   end
 end
 
-Base.getproperty(::Type{T}, sym::Symbol) where {N,T<:BitSet{N}} = try
-  T(N(1) << getfield(instances(T), sym))
-catch
-  getfield(T, sym)
+# Dispatch on `Type{<:BitSet}` directly rather than `::Type{T} where {N,T<:BitSet{N}}`.
+# Julia 1.12 tightened `where`-clause resolution: the broader signature installs a
+# method on `Base.getproperty(::Type, ::Symbol)` (one of the hottest functions in
+# Base) and when dispatch considers it against an abstract `DataType` that isn't
+# a concrete BitSet subtype, `N` ends up unbound and using it raises
+# `UndefVarError(:T, scope=:static_parameter)`.
+#
+# `isconcretetype(T)` also calls `getproperty` internally on 1.12, which
+# recurses back into this method. Avoid it — use `getfield` throughout and let
+# construction failures fall through to the plain field lookup.
+function Base.getproperty(T::Type{<:BitSet}, sym::Symbol)
+  try
+    N = getfield(T, :types)[1]
+    T(N(1) << getfield(instances(T), sym))
+  catch
+    getfield(T, sym)
+  end
 end
 
 Base.:|(a::T, b::T) where T<:BitSet = T(a.value|b.value)
