@@ -274,7 +274,7 @@ macro def(e::Expr)
     end
   end
   s = parse_type(e)
-  deftype(s, s.mutable, __module__)
+  deftype(s, s.mutable, __module__, false)
 end
 
 macro def(abstract_kw::Symbol, e::Expr)
