@@ -70,6 +70,10 @@ Base.show(io::IO, ::MIME"text/plain", e::T) where T<:BitSet = begin
 end
 
 Base.show(io::IO, ::MIME"text/plain", ::Type{T}) where T<:BitSet = begin
+  if !isconcretetype(T)
+    write(io, string(nameof(T)))
+    return nothing
+  end
   names = collect(keys(instances(T)))
   write(io, string(nameof(T)), "::", length(names) == 1 ? first(names) : "($(join(names, ',')))")
   nothing
