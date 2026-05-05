@@ -388,6 +388,21 @@ Prospects.mixin_constructor(::Type{<:Container}) = true
 """
 mixin_constructor(::Type) = false
 
+"""
+Merge `new` into `old` in place. The generic fallback returns `new`, so
+calling `mixin!(out, attr)` where `attr` is a value to assign just returns
+`attr` and lets the caller decide what to do with it (e.g. `setproperty!`).
+
+Specialized methods for hierarchies that compose values (style nodes that
+have to merge with their previous value, container nodes that re-parent
+children, etc.) extend this in their own modules.
+
+The variadic form folds left, calling the binary form for every entry.
+"""
+function mixin! end
+mixin!(old, new) = new
+mixin!(old, new, extras...) = reduce(mixin!, extras, init=mixin!(old, new))
+
 deftype((;fields, constructors, curlies, name, super)::NamedTuple, mutable, __module__, defoptionals=true) = begin
   T = isempty(curlies) ? name : :($name{$(curlies...)})
   s = Base.eval(__module__, super)
@@ -605,4 +620,4 @@ export group, assoc, dissoc, compose, mapcat, flat,
        flatten, get_in, pop, ismethod, Field, @field_str,
        need, append, assoc_in, dissoc_in, prepend,
        waitany, waitall, @struct, @mutable, interleave,
-       @abstract, @property, @lazyprop, @def, mixin_constructor
+       @abstract, @property, @lazyprop, @def, mixin_constructor, mixin!
