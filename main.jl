@@ -365,9 +365,33 @@ is_constructor_def(expr) = begin
                  (function name_(args__) body_ end) | (function name_(args__) where {params__} body_ end))
 end
 
+"""
+Opt-in trait. Returning `true` for an abstract type tells `@def` to emit an
+explicit typed inner constructor for every concrete subtype it defines, which
+in turn suppresses Julia's auto-generated *convert outer* constructor
+(`T(args::Vararg{Any,N}) = T(convert(...), ...)`).
+
+This is for hierarchies that define a generic variadic constructor on
+`Type{<:Super}` (e.g. mixin-style `T(args...) = (out = T(); for s in args;
+mixin!(out, s); end; out)`). Without the suppression, the auto-gen convert
+outer wins dispatch for any call whose arity equals the field count, leading
+to confusing convert errors.
+
+Default is `false` so unrelated `@def` types keep auto-coercion (e.g. numeric
+wrappers like `Pixel(0)` → `Pixel(0.0)`, `Window(; size=(1px, 2px))` having
+the tuple converted to a `Vec2{Pixel}`, etc.).
+
+```julia
+# In some module that defines a mixin variadic on `Type{<:Container}`:
+Prospects.mixin_constructor(::Type{<:Container}) = true
+```
+"""
+mixin_constructor(::Type) = false
+
 deftype((;fields, constructors, curlies, name, super)::NamedTuple, mutable, __module__, defoptionals=true) = begin
   T = isempty(curlies) ? name : :($name{$(curlies...)})
   s = Base.eval(__module__, super)
+  opts_into_mixin = false
   while s != Any
     # mixin inherited fields, skipping ones the subtype already defines
     # Try field_map first, then fall back to module-local __field_info__
@@ -381,6 +405,7 @@ deftype((;fields, constructors, curlies, name, super)::NamedTuple, mutable, __mo
         f.name in existing || push!(fields, f)
       end
     end
+    opts_into_mixin = opts_into_mixin || mixin_constructor(s)
     s = supertype(s)
   end
   # Build struct body with fields and constructors
@@ -389,6 +414,17 @@ deftype((;fields, constructors, curlies, name, super)::NamedTuple, mutable, __mo
   # Add inner constructors to struct body
   for constructor in constructors
     push!(struct_body.args, constructor)
+  end
+
+  # Opted-in hierarchies: emit an explicit typed inner constructor so
+  # Julia stops auto-generating its convert outer. The user-supplied
+  # variadic on `Type{<:Super}` then catches every call with non-matching
+  # arg types regardless of arity.
+  if opts_into_mixin && isempty(constructors) && !isempty(fields)
+    field_names = map(field"name", fields)
+    typed_params = map(tofield, fields)
+    push!(struct_body.args,
+          :($T($(typed_params...)) where {$(curlies...)} = new($(field_names...))))
   end
 
   def = Expr(:struct, mutable, :($T <: $super), struct_body)
@@ -406,7 +442,7 @@ deftype((;fields, constructors, curlies, name, super)::NamedTuple, mutable, __mo
     push!(out.args, esc(defhash(T, curlies, map(field"name", fields))),
                     esc(defequals(T, curlies, map(field"name", fields))))
   end
-  push!(out.args, esc(kwdef(T, curlies, fields)))
+  push!(out.args, esc(kwdef(T, curlies, fields, opts_into_mixin)))
 
   push!(out.args, :(Base.getproperty(t::$(esc(name)), k::Symbol) = getproperty(t, Field{k}())))
   push!(out.args, :(Base.setproperty!(t::$(esc(name)), k::Symbol, x) = setproperty!(t, Field{k}(), x)))
@@ -414,9 +450,17 @@ deftype((;fields, constructors, curlies, name, super)::NamedTuple, mutable, __mo
   out
 end
 
-kwdef(T, curlies, fields) = begin
+kwdef(T, curlies, fields, convert_args=false) = begin
   isempty(fields) && return nothing
-  :($T(;$(map(to_kwarg, fields)...)) where {$(curlies...)} = $T($(map(field"name", fields)...)))
+  # When the type opts into mixin construction, Julia's auto-generated
+  # convert outer is suppressed by our explicit typed inner. kwdef must
+  # then convert each kwarg explicitly so forwarding to the typed inner
+  # works even when a default's type is narrower than the user's input
+  # (e.g. `Int16` field with a `600` default that Julia infers as `Int`).
+  call_args = convert_args ?
+    [:(Base.convert($(f.type), $(f.name))) for f in fields] :
+    map(field"name", fields)
+  :($T(;$(map(to_kwarg, fields)...)) where {$(curlies...)} = $T($(call_args...)))
 end
 
 to_kwarg(f::FieldDef) = f.isoptional ? Expr(:kw, f.name, f.default) : :($(f.name))
@@ -561,4 +605,4 @@ export group, assoc, dissoc, compose, mapcat, flat,
        flatten, get_in, pop, ismethod, Field, @field_str,
        need, append, assoc_in, dissoc_in, prepend,
        waitany, waitall, @struct, @mutable, interleave,
-       @abstract, @property, @lazyprop, @def
+       @abstract, @property, @lazyprop, @def, mixin_constructor
