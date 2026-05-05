@@ -432,9 +432,7 @@ deftype((;fields, constructors, curlies, name, super)::NamedTuple, mutable, __mo
   end
 
   # Opted-in hierarchies: emit an explicit typed inner constructor so
-  # Julia stops auto-generating its convert outer. The user-supplied
-  # variadic on `Type{<:Super}` then catches every call with non-matching
-  # arg types regardless of arity.
+  # Julia stops auto-generating its convert outer.
   if opts_into_mixin && isempty(constructors) && !isempty(fields)
     field_names = map(field"name", fields)
     typed_params = map(tofield, fields)
@@ -444,6 +442,21 @@ deftype((;fields, constructors, curlies, name, super)::NamedTuple, mutable, __mo
 
   def = Expr(:struct, mutable, :($T <: $super), struct_body)
   out = quote Base.@__doc__($(esc(def))) end
+
+  # Opted-in hierarchies also get a per-type variadic that does mixin
+  # construction. Putting this on `Type{T}` directly (rather than on
+  # `Type{<:Super}`) keeps it strictly more specific than any abstract
+  # mixin variadic in user code, so dispatch is unambiguous. The first
+  # `Any` slot ensures we don't shadow the no-arg kwdef path.
+  if opts_into_mixin
+    push!(out.args, esc(:(
+      function $T(arg1, args...) where {$(curlies...)}
+        out = $T()
+        $mixin!(out, arg1)
+        for s in args; $mixin!(out, s); end
+        out
+      end)))
+  end
   if defoptionals
     for i in length(fields):-1:2
       field = fields[i]
