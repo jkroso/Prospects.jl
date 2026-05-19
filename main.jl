@@ -450,8 +450,8 @@ deftype((;fields, constructors, curlies, name, super)::NamedTuple, mutable, __mo
   # `Any` slot ensures we don't shadow the no-arg kwdef path.
   if opts_into_mixin
     push!(out.args, esc(:(
-      function $T(arg1, args...) where {$(curlies...)}
-        out = $T()
+      function $T(arg1, args...; kwargs...) where {$(curlies...)}
+        out = $T(; kwargs...)
         $mixin!(out, arg1)
         for s in args; $mixin!(out, s); end
         out
