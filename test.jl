@@ -266,6 +266,11 @@ end
   sym = Ref(:name)                  # runtime symbol defeats constant folding
   _scoped_gp(Suit, sym[])           # warm up / compile for (Type, Symbol)
   @test @allocated(_scoped_gp(Suit, sym[])) == 0
+  # the abstract ScopedEnum base has no `instances` method — getproperty must
+  # fall through to the real type field, not error (regression: a naive
+  # hasfield(instances(T)) call throws MethodError on the abstract base).
+  @test getproperty(supertype(Suit), :name) === getfield(supertype(Suit), :name)
+  @test nameof(supertype(Suit)) === :ScopedEnum
 end
 
 @testset "convert to NamedTuple" begin

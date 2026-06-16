@@ -1,13 +1,16 @@
 abstract type ScopedEnum{T} <: Enum{T} end
 
 # Scoped value access (`MyEnum.Variant`) reads from the instances NamedTuple;
-# any other property falls through to the type's real field. Use a non-throwing
-# membership check rather than try/getfield/catch — the caught FieldError on every
-# non-value access (`.name`, `nameof`, type introspection) is cheap once but, when
-# the compiler concrete-evals it during cold JIT, storms into a multi-minute
+# any other property falls through to the type's real field. Use non-throwing
+# checks rather than try/getfield/catch — the caught FieldError on every non-value
+# access (`.name`, `nameof`, type introspection) is cheap once but, when the
+# compiler concrete-evals it during cold JIT, storms into a multi-minute
 # backtrace-recording spin (observed in OmnibarSchema.generate over enum params).
+# `applicable(instances, T)` guards the abstract bases (ScopedEnum/BitSet), which
+# have no `instances` method, and — unlike `isconcretetype`, which reads `T.flags`
+# via getproperty and would recurse back into this method — never touches T.
 Base.getproperty(T::Type{<:ScopedEnum}, sym::Symbol) =
-  hasfield(typeof(instances(T)), sym) ? getfield(instances(T), sym) : getfield(T, sym)
+  (applicable(instances, T) && hasfield(typeof(instances(T)), sym)) ? getfield(instances(T), sym) : getfield(T, sym)
 Base.propertynames(T::Type{<:ScopedEnum}) = keys(instances(T))
 Base.iterate(T::Type{<:ScopedEnum}) = iterate(values(instances(T)))
 Base.iterate(T::Type{<:ScopedEnum}, state) = iterate(values(instances(T)), state)
