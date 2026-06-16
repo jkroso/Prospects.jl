@@ -249,6 +249,25 @@ end
   @test length(Flags) == 3
 end
 
+@Enum Suit Spades Hearts Diamonds Clubs
+@noinline _scoped_gp(T, s) = getproperty(T, s)
+
+@testset "ScopedEnum type getproperty (no has_no_field_error storm)" begin
+  # scoped value access on the type
+  @test Suit.Spades === instances(Suit).Spades
+  @test Suit.Clubs.value == 0x04
+  # a non-enum-value field access must fall through to the DataType's real field
+  @test getproperty(Suit, :name) === getfield(Suit, :name)
+  @test nameof(Suit) === :Suit
+  # ...without throwing-and-catching internally. A caught FieldError allocates an
+  # exception + backtrace — the source of the cold-boot has_no_field_error storm
+  # in code that introspects enum types (e.g. OmnibarSchema.generate). The
+  # non-throwing path allocates nothing.
+  sym = Ref(:name)                  # runtime symbol defeats constant folding
+  _scoped_gp(Suit, sym[])           # warm up / compile for (Type, Symbol)
+  @test @allocated(_scoped_gp(Suit, sym[])) == 0
+end
+
 @testset "convert to NamedTuple" begin
   @test convert(NamedTuple, A(1)) == (a=1, b=Dict(), c=Int[])
 end
