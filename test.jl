@@ -1,4 +1,4 @@
-@use Test: @test, @testset
+@use Test: @test, @testset, @test_throws
 @use "." exports... field_defaults
 @use "./Enum.jl" @Enum
 @use "./BitSet.jl" @BitSet
@@ -111,6 +111,11 @@ end
 @testset "need" begin
   @test need(@async 1) == 1
   @test isa(try need(@async error("boom")) catch e; e end, ErrorException)
+  # a task that already failed should throw too, not return its exception
+  t = @async error("boom")
+  timedwait(() -> istaskdone(t), 5)
+  @test_throws ErrorException need(t)
+  @test need(t, 2) == 2
 end
 
 # @mutable
@@ -212,8 +217,7 @@ end
   # A single sleep(0) isn't enough on Julia 1.13+
   timedwait(() -> all(x -> !isempty(x.waitq), c), 5)
   notify(c[2], 1, error=true)
-  timedwait(() -> istaskdone(p), 5)
-  @test need(p)[1] == 1
+  @test_throws (1, c[2]) need(p)
   c = [Channel(32), Channel(32)]
   put!(c[1], 1)
   sleep(0)

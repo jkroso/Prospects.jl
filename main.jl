@@ -211,8 +211,8 @@ need(f::Future) = begin
 end
 
 need(t::Task) = begin
-  istaskdone(t) && return t.result
   istaskfailed(t) && throw(t.result)
+  istaskdone(t) && return t.result
   try
     wait(t)
     t.result
