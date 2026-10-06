@@ -208,9 +208,11 @@ end
 @testset "waitany" begin
   c = [Condition(), Condition()]
   p=@async waitany(c...)
-  sleep(0)
+  # notify only wakes tasks already waiting, so wait for waitany's helpers to block.
+  # A single sleep(0) isn't enough on Julia 1.13+
+  timedwait(() -> all(x -> !isempty(x.waitq), c), 5)
   notify(c[2], 1, error=true)
-  sleep(0)
+  timedwait(() -> istaskdone(p), 5)
   @test need(p)[1] == 1
   c = [Channel(32), Channel(32)]
   put!(c[1], 1)
