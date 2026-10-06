@@ -471,6 +471,9 @@ deftype((;fields, constructors, curlies, name, super)::NamedTuple, mutable, __mo
                     esc(defequals(T, curlies, map(field"name", fields))))
   end
   push!(out.args, esc(kwdef(T, curlies, fields, opts_into_mixin)))
+  defaults = [Expr(:kw, f.name, QuoteNode(f.default)) for f in fields if f.isoptional]
+  push!(out.args, :($(@__MODULE__).field_defaults(::Type{<:$(esc(name))}) =
+                      $(esc(Expr(:tuple, Expr(:parameters, defaults...))))))
 
   push!(out.args, :(Base.getproperty(t::$(esc(name)), k::Symbol) = getproperty(t, Field{k}())))
   push!(out.args, :(Base.setproperty!(t::$(esc(name)), k::Symbol, x) = setproperty!(t, Field{k}(), x)))
@@ -513,6 +516,23 @@ defequals(T, curlies, fields) = begin
 end
 
 const field_map = IdDict()
+
+"""
+The default each field of a `@def` type declares, as written in the
+definition: `1`, `true`, `"AU"`, `:(Color.red)`, `:(now())`. A field with no
+default is left out. It lets a type be described where its constructor can't
+reach, like the DEFAULT on a database column.
+
+```julia
+@def struct Job
+  hours::Int=8
+  started::DateTime=now()
+  name::String
+end
+field_defaults(Job) # => (hours = 8, started = :(now()))
+```
+"""
+field_defaults(::Type) = (;)
 
 """
 Store field info in a module-local const dict so it survives compilation cache serialization.

@@ -1,5 +1,5 @@
 @use Test: @test, @testset
-@use "." exports...
+@use "." exports... field_defaults
 @use "./Enum.jl" @Enum
 @use "./BitSet.jl" @BitSet
 
@@ -167,6 +167,22 @@ end
 @test fieldnames(J) == (:c, :a, :b)
 @mutable K <: L
 @test fieldnames(K) == (:c, :a, :b)
+
+@def struct Shift
+  name::String
+  hours::Int=8
+  paid::Bool=true
+  started::Float64=time()
+end
+
+@testset "field_defaults" begin
+  @test field_defaults(Shift) == (hours=8, paid=true, started=:(time()))
+  @test field_defaults(B) == (b=:(Dict()), c=:(Vector{Int}()))
+  @test field_defaults(C{:a}) == (;)
+  @test isequal(field_defaults(D), (b=missing,))
+  @test isequal(field_defaults(E), (b=missing, c="c"))
+  @test field_defaults(Int) == (;)
+end
 
 @def abstract type Animal end
 @test isabstracttype(Animal)
