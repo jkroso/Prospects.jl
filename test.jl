@@ -386,3 +386,26 @@ end
   @test Integer(Color.red) == 1
   @test Integer(Color.blue) == 3
 end
+
+@def mutable struct RuntimeName
+  a::Int = 1
+  b::String = "b"
+end
+@property RuntimeName.twice = self.a * 2
+read_b(things) = things[1].b
+
+@testset "a field read by a name known only at run time" begin
+  r = RuntimeName()
+  @test getproperty(r, Ref(:b)[]) == "b"
+  setproperty!(r, Ref(:a)[], 5)
+  @test r.a == 5
+  @test getproperty(r, Ref(:twice)[]) == 10
+  # The name is tested against each field's name. Made into a `Field` type
+  # and looked up, it took about four times as long.
+  things = Any[r]
+  read_b(things)
+  fastest = minimum(1:10) do _
+    (@elapsed for _ in 1:100_000; read_b(things); end) / 100_000
+  end
+  @test fastest < 30e-9
+end

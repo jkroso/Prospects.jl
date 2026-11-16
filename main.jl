@@ -475,8 +475,21 @@ deftype((;fields, constructors, curlies, name, super)::NamedTuple, mutable, __mo
   push!(out.args, :($(@__MODULE__).field_defaults(::Type{<:$(esc(name))}) =
                       $(esc(Expr(:tuple, Expr(:parameters, defaults...))))))
 
-  push!(out.args, :(Base.getproperty(t::$(esc(name)), k::Symbol) = getproperty(t, Field{k}())))
-  push!(out.args, :(Base.setproperty!(t::$(esc(name)), k::Symbol, x) = setproperty!(t, Field{k}(), x)))
+  # `t.k` comes here with `k` as a Symbol. Julia usually knows `k` as it
+  # compiles the call, and the chain below folds to the one field. When it
+  # doesn't, like when `t`'s type is only known at run time, making `Field{k}`
+  # from the Symbol, then finding its method, took far longer than the field
+  # itself. So each field of the type is a test of `k` against its name, and
+  # only a name that isn't a field, like a `@property`, makes a `Field`.
+  names = map(field"name", fields)
+  get = foldr(names, init=:(getproperty(t, Field{k}()))) do n, rest
+    :(k === $(QuoteNode(n)) ? getproperty(t, Field{$(QuoteNode(n))}()) : $rest)
+  end
+  set = foldr(names, init=:(setproperty!(t, Field{k}(), x))) do n, rest
+    :(k === $(QuoteNode(n)) ? setproperty!(t, Field{$(QuoteNode(n))}(), x) : $rest)
+  end
+  push!(out.args, :(@inline Base.getproperty(t::$(esc(name)), k::Symbol) = $get))
+  push!(out.args, :(@inline Base.setproperty!(t::$(esc(name)), k::Symbol, x) = $set))
   push!(out.args, nothing)
   out
 end
