@@ -376,6 +376,10 @@ end
 @testset "ScopedEnum" begin
   @test sprint(show, Color.red) == "Color.red"
   @test sprint(show, Color) == "Color::(red,green,blue)"
+  # the abstract bases have no values, so they're written Julia's usual way
+  @test endswith(sprint(show, supertype(Color)), "ScopedEnum{UInt8}")
+  @test endswith(string(supertype(Color)), "ScopedEnum{UInt8}")
+  @test endswith(sprint(show, Base.typename(supertype(Color)).wrapper), "ScopedEnum")
   @test nameof(Color.red) == :red
   @test nameof(Color.green) == :green
   @test nameof(Color.blue) == :blue

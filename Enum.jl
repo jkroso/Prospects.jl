@@ -38,6 +38,8 @@ Base.show(io::IO, e::ScopedEnum) = begin
 end
 
 Base.show(io::IO, T::Type{<:ScopedEnum}) = begin
+  # An abstract base, like ScopedEnum{UInt8}, has no values, so Julia writes it its usual way
+  applicable(instances, T) || return invoke(show, Tuple{IO,Type}, io, T)
   write(io, nameof(T), "::($(join(map(nameof, instances(T)), ',')))")
   nothing
 end
